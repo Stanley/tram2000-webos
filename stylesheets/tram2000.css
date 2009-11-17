@@ -1,0 +1,13 @@
+/* Put Application specific CSS here. */
+
+strong{
+	display: block;
+	font-size: 30px;
+	margin: auto 
+}
+
+.center{
+	text-align: center;
+	margin: 0;
+	padding: 10px;
+}

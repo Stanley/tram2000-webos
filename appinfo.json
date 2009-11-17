@@ -1,0 +1,9 @@
+{
+	"id": "net.wasiutynski.tram2000",
+	"version": "1.0.0",
+	"vendor": "Wasiutynski",
+	"type": "web",
+	"main": "index.html",
+	"title": "Tram2000",
+	"icon": "icon.png"
+}
