@@ -1,2 +1,3 @@
 h1. Tram2000-webos
-Implementacja aplikacji "tram2000-rhodes":http://github.com/Stanley/tram2000-rhodes, na telefony z systemem operacyjnym "Palm webOS":http://developer.palm.com.
+
+Implementacja aplikacji "tram2000-rhodes":http://github.com/Stanley/tram2000-rhodes, na smartfony z systemem operacyjnym "Palm webOS":http://developer.palm.com.
