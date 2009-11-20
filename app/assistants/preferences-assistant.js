@@ -6,13 +6,78 @@ function PreferencesAssistant() {
 }
 
 PreferencesAssistant.prototype.setup = function() {
-	/* this function is for setup tasks that have to happen when the scene is first created */
+
+  // Loading configuration cookies
+  var user_cookie = new Mojo.Model.Cookie('user').get()
+  var sync_cookie = new Mojo.Model.Cookie('sync').get()
+
+  // Setup default values
+  if(!sync_cookie)
+    sync_cookie = {send: 'true', recieve: 'false'}
+
+  var anonymous = true
+  if(!user_cookie)
+    this.user_model = {username: '', password: ''}
+  else {
+    if(user_cookie.username && user_cookie.username != '')
+      anonymous = false
+    this.user_model = user_cookie
+  }
+
+  // Setup ToggleButton which shows or hides drawer
+	this.controller.setupWidget('anonim', {trueLabel: 'tak', falseLabel: 'nie'}, {value: anonymous})
+
+	this.toggleDrawer = this.toggleDrawer.bindAsEventListener(this)
+	Mojo.Event.listen(this.controller.get('anonim'), Mojo.Event.propertyChange, this.toggleDrawer)
+
+  // Setup drawer with login & password fields
+	this.controller.setupWidget('login', {hintText: 'Użytkownik', modelProperty: 'username'}, this.user_model)
+	this.controller.setupWidget('password', {hintText: 'Hasło', modelProperty: 'password'}, this.user_model)
+
+	this.controller.setupWidget('login_and_password-drawer', {unstyled: true}, {open: !anonymous})
+	this.drawer = this.controller.get('login_and_password-drawer')
 		
-	/* use Mojo.View.render to render view templates and add them to the scene, if needed. */
-	
-	/* setup widgets here */
-	
-	/* add event handlers to listen to events from widgets */
+	// Setup the choice arrays,
+	// options for list selector choices:
+  this.selector_opts = [                  
+	  {label: 'Automatycznie',  value: 'true'},
+	  {label: 'Ręcznie',        value: 'false'}
+  ]
+
+	this.controller.setupWidget('recieving_selector', {label: 'Odbieranie', choices: this.selector_opts, modelProperty:'recieve', labelPlacement: Mojo.Widget.labelPlacementLeft}, sync_cookie)
+  this.controller.setupWidget('sending_selector', {label: 'Wysyłanie', choices: this.selector_opts, modelProperty:'send', labelPlacement: Mojo.Widget.labelPlacementLeft}, sync_cookie)
+
+  // Remember chenges
+	this.handleTextFieldUpdate = this.handleTextFieldUpdate.bindAsEventListener(this)
+  Mojo.Event.listen(this.controller.get('login'), Mojo.Event.propertyChange, this.handleTextFieldUpdate)
+  Mojo.Event.listen(this.controller.get('password'), Mojo.Event.propertyChange, this.handleTextFieldUpdate)
+
+	this.handleListSelectorUpdate = this.handleListSelectorUpdate.bindAsEventListener(this)
+  Mojo.Event.listen(this.controller.get('recieving_selector'), Mojo.Event.propertyChange, this.handleListSelectorUpdate)
+  Mojo.Event.listen(this.controller.get('sending_selector'), Mojo.Event.propertyChange, this.handleListSelectorUpdate)
+}
+
+// This function is called every time ToggleButton "anonim" changes it's state
+PreferencesAssistant.prototype.toggleDrawer = function(e){		
+  new Mojo.Model.Cookie('user').remove()
+  this.drawer.mojo.setOpenState(!this.drawer.mojo.getOpenState())
+}
+
+// This function is called every time one of the ListSelectors changes it's value
+PreferencesAssistant.prototype.handleListSelectorUpdate = function(event){
+  var cookie = new Mojo.Model.Cookie('sync')
+  cookie.put(event.model)
+  // console.log(Object.toJSON(cookie.get()))
+}
+
+// This function is called every time login or password TextField changes it's value
+PreferencesAssistant.prototype.handleTextFieldUpdate = function(event){
+  var cookie = new Mojo.Model.Cookie('user')
+  cookie.put({
+    username: this.user_model['username'],
+    password: this.user_model['password']
+  })
+  console.log(Object.toJSON(cookie.get()))
 }
 
 PreferencesAssistant.prototype.activate = function(event) {
@@ -29,4 +94,13 @@ PreferencesAssistant.prototype.deactivate = function(event) {
 PreferencesAssistant.prototype.cleanup = function(event) {
 	/* this function should do any cleanup needed before the scene is destroyed as 
 	   a result of being popped off the scene stack */
+
+  // Calling TextFieldUpdate in case when cookie was destroyed by toggleDrawer
+  Mojo.Event.send(this.controller.get('login'), Mojo.Event.propertyChange)
+
+  Mojo.Event.stopListening(this.controller.get('anonim'), Mojo.Event.propertyChange, this.toggleDrawer)
+  Mojo.Event.stopListening(this.controller.get('login'), Mojo.Event.propertyChange, this.handleTextFieldUpdate)
+  Mojo.Event.stopListening(this.controller.get('password'), Mojo.Event.propertyChange, this.handleTextFieldUpdate)
+  Mojo.Event.stopListening(this.controller.get('recieving_selector'), Mojo.Event.propertyChange, this.handleListSelectorUpdate)
+  Mojo.Event.stopListening(this.controller.get('sending_selector'), Mojo.Event.propertyChange, this.handleListSelectorUpdate)
 }

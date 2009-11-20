@@ -1,1 +1,66 @@
-Find me in app/views/preferences/preferences-scene.html.
+<div class="palm-page-header">
+	<div class="palm-page-header-wrapper">
+		<div class="title left">
+			Ustawienia
+		</div>
+	</div>
+</div>
+
+<div class="palm-group">
+	<div class="palm-group-title">Logowanie</div>	
+	<div class="palm-list">	
+		<div class="palm-row single">
+			<div class="palm-row-wrapper">
+				<div x-mojo-element="ToggleButton" id="anonim"></div>
+				<div class="title left truncating-text">Anonimowe</div>
+			</div>			
+			<div class="preview">
+			  Logowanie anonimowe zwiększa Twoją prywatność, ale uniemożliwia tworzenie spersonalizowanych statystyk podróży. Wypełnij pole login i hasło, jeżeli chcesz automatyczne logowanie, lub sam login jeżeli chcesz wpisywać hasło przy synchronizacji.
+			</div>
+		</div>
+	</div>
+</div>
+
+<div id="login_and_password-drawer" x-mojo-element="Drawer">
+  <div class="palm-group">
+	  <div class="palm-group-title" x-mojo-loc=''>Nazwa użytkownika i hasło</div>
+	  <div class="palm-list">
+     		<div class="palm-row first">
+			  <div class="palm-row-wrapper textfield-group" x-mojo-focus-highlight="true">
+				  <div class="title">
+        				<div id="login" name="login" x-mojo-element="TextField"></div>
+				  </div>
+			  </div>
+		  </div>
+     		<div class="palm-row last">
+			  <div class="palm-row-wrapper textfield-group" x-mojo-focus-highlight="true">
+				  <div class="title">
+        				<div id="password" name="password" x-mojo-element="PasswordField"></div>
+				  </div>
+			  </div>
+		  </div>
+	  </div>
+  </div>
+</div>
+
+<div class="palm-group">
+	<div class="palm-group-title">Synchronizacja</div>
+	<div class="palm-list">	
+		<div class="palm-row first multi-line">
+			<div class="palm-row-wrapper">
+				<div id="recieving_selector" x-mojo-element="ListSelector"></div>				
+				<div class="preview">
+	          		Sposób w jaki baza przystanków będzie aktualizowana
+	  			</div>
+			</div>
+		</div>
+		<div class="palm-row last multi-line">
+			<div class="palm-row-wrapper">
+				<div id="sending_selector" x-mojo-element="ListSelector"></div>				
+				<div class="preview">
+	          		Sposób w jaki chcesz wysyłać wygenerowane dane o podróżach
+	  			</div>  	
+			</div>
+		</div>
+	</div>
+</div>
