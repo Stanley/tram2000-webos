@@ -11,3 +11,22 @@ strong{
 	margin: 0;
 	padding: 10px;
 }
+
+.scene-footer {
+	position:fixed;
+  margin: 5px;
+	bottom:0px; 
+	left:0px; 
+	right:0px;
+	-webkit-border-image: url(../images/fade-bottom-light-30px.png) 35 0 0 0 repeat repeat;
+	border-width: 35px 0px 0px 0px;
+	-webkit-palm-mouse-target: ignore;
+}
+
+.scene-footer-wrapper {
+	margin-top:-10px;
+}
+
+.preview {
+	color: red
+}

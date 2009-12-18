@@ -27,5 +27,9 @@
     {
         "scenes": "stops",
         "source": "app/assistants/stops-assistant.js"
+    },
+    {
+        "scenes": "stops-by-name",
+        "source": "app/assistants/stops-by-name-assistant.js"
     }
 ]
