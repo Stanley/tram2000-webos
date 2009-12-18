@@ -1,0 +1,22 @@
+[
+    {
+        "title": "Generating data tests",
+        "source": "tests/generator_tests.js",
+        "testFunction": "GeneratorTests"
+    },
+    {
+        "title": "Sending data tests",
+        "source": "tests/sender_tests.js",
+        "testFunction": "SenderTests"
+    },
+    {
+        "title": "Read-only sync tests",
+        "source": "tests/sync_tests.js",
+        "testFunction": "SyncTests"
+    },
+    {
+        "title": "Cookie tests",
+        "source": "tests/cookie_tests.js",
+        "testFunction": "CookieTests"
+    }
+]
