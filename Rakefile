@@ -17,3 +17,8 @@ desc 'Run tests'
 task :tests do
   sh "palm-package . -o packages && palm-install packages/* && palm-launch -p '{mojoTest:true}' net.wasiutynski.tram2000"
 end
+
+desc 'Root emulator'
+task :ssh do
+  sh "/opt/Palm/novacom/novacom -t open tty://"
+end
