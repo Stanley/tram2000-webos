@@ -14,15 +14,29 @@ BingAssistant.prototype.setup = function() {
 	
 	/* add event handlers to listen to events from widgets */
 
-  this.db = openDatabase("tram2000", 1, "Tram2000", 250000);	
+    this.db = openDatabase("tram2000", 1, "Tram2000", 250000);
 
-//  console.log(stops)
+    //  console.log(stops)
 
 	this.seconds = 0;
 	
 	//this.interval = setInterval("StageAssistant.handleUpdate()", 1000)
-	this.timerRollHandler = this.timerRoll.bind(this);
-  this.interval = setInterval(this.timerRollHandler, 1000);
+    this.timerRollHandler = this.timerRoll.bind(this);
+    this.interval = setInterval(this.timerRollHandler, 1000);
+
+    this.controller.serviceRequest('palm://com.palm.location', {
+        method:"startTracking",
+        parameters:{
+			'accuracy'     : 1,
+			'responseTime' : 1
+		},
+        onSuccess:function(){
+            Mojo.Controller.getAppController().showBanner('Sukces', {source: 'notification'})
+        }        ,
+        onFailure: function(){
+            Mojo.Controller.getAppController().showBanner('Błąd GPS', {source: 'notification'})
+        }        
+    })
 
 }
 

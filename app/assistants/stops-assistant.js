@@ -3,46 +3,8 @@ function StopsAssistant() {
 
 StopsAssistant.prototype.setup = function() {
 
-  this.db = openDatabase("tram2000", 1, "Tram2000", 250000);	
-
-  var attributes = {
-        itemTemplate: 'stops/list-item',
-        swipeToDelete: false,
-        reorderable: false,
-        filterFunction: this.list.bind(this),
-//        formatters: {
-//            name: this.formatName.bind(this),
- //           number: this.formatNumber.bind(this)
-  //      },
-        delay: 100, // 1 second delay before filter string is used
-        emptyTemplate: 'stops/list-empty',
-        disabledProperty: 'disabled'
-  };
-
-  this.model = {
-    disabled: false
-  };
-
-  this.controller.setupWidget('stops', attributes, this.model);	
-}
-
-StopsAssistant.prototype.list = function(filterString, listWidget, offset, count){
-
-  var sql = "SELECT * FROM 'stops' WHERE name LIKE ? OR name LIKE ? GROUP BY name ORDER BY name";  // check sqlite data types for other values
-
-  this.filterString = filterString
-  this.listWidget = listWidget
-  this.offset = offset
-  this.count = count
-
-  this.db.transaction(    
-    function (transaction) { 
-     // transaction.executeSql("INSERT INTO 'stops' (name) VALUES ('nazwa')", [], this.dbSuccessHandler.bind(this), this.dbFailureHandler.bind(this)); 
-
-      transaction.executeSql(sql, [filterString + "%", "% " + filterString + "%"], this.dbSuccessSelectHandler.bind(this), this.dbFailureHandler.bind(this)); 
-  }.bind(this)); //this is important!
-
-	appMenuModel = {
+  // Aplication menu setup
+	var menu_model = {
 	  	items: [
 	    	{label: "Informacje", command: 'do-about'},
 	    	{label: "Opcje", command: 'do-pref'},	  	
@@ -52,86 +14,126 @@ StopsAssistant.prototype.list = function(filterString, listWidget, offset, count
 	  		]},	    	
 	    	{label: "Pomoc", command: 'do-help'}	    	
 	  	]
-	};
-  this.controller.setupWidget(Mojo.Menu.appMenu, appMenuAttr, appMenuModel);
+	}
+
+  this.controller.setupWidget(Mojo.Menu.appMenu, { omitDefaultItems: true }, menu_model)
+
+  // Open html5 storage connection
+  this.db = openDatabase("tram2000", 1, "Tram2000", 250000)
+
+  var list_attributes = {
+    renderLimit: 200,
+//	  lookahead: 15,
+    delay: 100,
+    emptyTemplate: 'stops/list-empty',
+    itemTemplate: 'stops/list-item',
+    filterFunction: this.showList.bind(this)
+  }
+
+  this.listWidget = this.controller.get('stops')
+  this.controller.setupWidget('stops', list_attributes)
+
+  this.listTapHandler = this.listTapHandler.bindAsEventListener(this)
+  Mojo.Event.listen(this.listWidget, Mojo.Event.listTap, this.listTapHandler)
+
 }
 
+StopsAssistant.prototype.refreshList = function(){
+  var sql = "SELECT name, COUNT(*) AS count FROM 'stops' GROUP BY name ORDER BY name"
 
-StopsAssistant.prototype.dbSuccessSelectHandler = function(transaction, result) {
- // Handle successful queries including receiving results
-  console.log("Sql success select:")
+  console.log("refreshing")
 
-  var data = []
-  var totalSubsetSize = 0;
+  this.db.transaction(    
+    function (transaction) { 
+      transaction.executeSql(sql, [], this.dbSuccessSelectHandler.bind(this, "%"), this.dbFailureHandler.bind(this))
+  }.bind(this))
+
+}
+
+StopsAssistant.prototype.showList = function(filterString, listWidget, offset, count){
+
+  var sql = "SELECT name, COUNT(*) AS count FROM 'stops' WHERE name LIKE ? OR name LIKE ? GROUP BY name ORDER BY name LIMIT ?, ?"
+
+//  this.offset = offset
+//  this.count = count
+
+  this.db.transaction(    
+    function (transaction) { 
+      transaction.executeSql(sql, [filterString + "%", "% " + filterString + "%", offset, count], this.dbSuccessSelectHandler.bind(this, filterString, offset), this.dbFailureHandler.bind(this)); 
+  }.bind(this))
+}
+
+StopsAssistant.prototype.listTapHandler = function(event){
+  this.controller.stageController.pushScene('stops-by-name', event.item.name)
+}
+
+StopsAssistant.prototype.dbSuccessSelectHandler = function(filterString, offset, transaction, result) {
+  // Handle successful queries including receiving results
+  console.log(", Sql success select:")
+
+  var subset = []
 
   for(var i=0; i < result.rows.length; i++) {
     var row = result.rows.item(i)
-    data.push({name: row.name});
-    totalSubsetSize++;
+    subset.push(row)
   }
 
-  var subset = [];
+  this.listWidget.mojo.noticeUpdatedItems(offset, subset);
+		
+  // Set the list's lenght & count if we're not repeating the same filter string from an earlier pass
+  if (this.filter !== filterString) {
+    this.listWidget.mojo.setLength(subset.length)
+    this.listWidget.mojo.setCount(subset.length)
+  }
+  this.filter = filterString
 
-    //update the items in the list with the subset
-    this.listWidget.mojo.noticeUpdatedItems(this.offset, data);
+//  if (this.offset > 50)
+//    this.list.push.apply(this.list, subset)
 
-    //set the list's length & count if we're not repeating
-    // the same filter string from an earlier pass
-    if (this.filter !== this.filterString) {
-        this.listWidget.mojo.setLength(totalSubsetSize);
-        this.listWidget.mojo.setCount(totalSubsetSize);
-    }
-    this.filter = this.filterString;
+//  console.log(this.offset)
+
+  // update the items in the list with the subset
+//	this.updateListWithNewItems(this.listWidget, this.offset, this.list.slice(this.offset, this.offset + this.count))
+//	this.listWidget.mojo.setLength(this.list.length)
+//  this.listWidget.mojo.noticeUpdatedItems(this.offset, this.list.slice(this.offset, this.offset + this.count))
+
 }
 
-StopsAssistant.prototype.dbSuccessHandler = function(transaction, result) {
- // Handle successful queries including receiving results
- console.log("Sql success:")
-
-//  for (var i = 0; i < result.rows.length; ++i) {
-//    var row = result.rows.item(i);
-//    console.log(row.name)
-//  }
-//SQLResultSet.rows.item(0).name
-};
-
+StopsAssistant.prototype.updateListWithNewItems = function(listWidget, offset, items) {
+  
+}
 
 StopsAssistant.prototype.dbFailureHandler = function(transaction, error) {
- console.log('An error occurred')
+  console.log('An error occurred')
   console.log(error.message)
-};
+}
+
+StopsAssistant.prototype.clearDbSuccess = function(){
+  var cookie = new Mojo.Model.Cookie('stops')
+  cookie.put(0)
+  Mojo.Controller.getAppController().showBanner('Baza przystanków jest pusta.', {source: 'notification'})
+  this.refreshList.bind(this)
+}
 
 StopsAssistant.prototype.handleCommand = function(event) {
+
   if(event.type == Mojo.Event.command) {
     switch(event.command) {
-      case 'do-stops-sync':				 
-		
-	      var url = "http://192.168.1.100:3000/apps/2bb26ebefa62cc85108d01ac96bdd262/sources/Stops.json?callback=?"
-
-        $.getJSON(url,
-          function(data){
-            this.db.transaction(
-              function (transaction) {
-			          $.each(data, function(i, stop) {
-                  transaction.executeSql("INSERT INTO 'stops' (name, lat, lng) VALUES (?, ?, ?)", [stop.name, stop.lat, stop.lng]); 
-                  // , function(transaction, results) { console.log("Successfully inserted row"); }, function(transaction, results) {}
-                  console.log(stop.name + ", " + stop.lat + ", " + stop.lng );
-                })
-              }
-			      )            
-          }.bind(this)
-	      )
-								
-				break;
+      case 'do-stops-sync':
+        var couch = new CouchDB(this.db, "stops")
+        couch.pull(new Mojo.Model.Cookie('stops').get(), function(){
+          this.refreshList.bind(this)
+        }.bind(this))
+        break
 				
-			case 'do-stops-remove':
-				Mojo.Controller.stageController.activeScene().showAlertDialog({
+      case 'do-stops-remove':
+        Mojo.Controller.stageController.activeScene().showAlertDialog({
           onChoose: function(value) {
             if(value == 'yes'){
               this.db.transaction(    
-      				  function (transaction) {  
-        		    	transaction.executeSql("DELETE FROM stops", [], function(event){}, function(){event}); 
-    			  		}.bind(this)
+                function (transaction) {
+                  transaction.executeSql("DELETE FROM stops", [], this.clearDbSuccess.bind(this) , function(){});
+                }.bind(this)
               )
             } 
           },
@@ -141,39 +143,14 @@ StopsAssistant.prototype.handleCommand = function(event) {
            		{label: 'Nie', value:'no'},
           		{label: 'Tak', value:'yes', type:'negative'}
           	]
-      	});
-				break;
+      	})
+        break
     }
   }
 }
 
-StopsAssistant.prototype.gotResults = function(t) {
-  Mojo.Log.info ("gotResults:", Object.toJSON(t));
-
-//	var r = transport.responseJSON;
-}
-
-StopsAssistant.prototype.failure = function(transport) {
-	console.log ("failure");
-	var t = new Template($L("Error: Status #{status} returned from AJAX Google search."));
-	var m = t.evaluate(transport);
-	
-	/*
-	 * Show an alert with the error.
-	 */
-	this.controller.showAlertDialog({
-	    onChoose: function(value) {},
-		title: $L("Error"),
-		message: m,
-		choices:[
-			{label: $L('OK'), value:'ok', type:'color'}    
-		]
-	});	  
-}
-
 StopsAssistant.prototype.activate = function(event) {
 }
-
 
 StopsAssistant.prototype.deactivate = function(event) {
 }

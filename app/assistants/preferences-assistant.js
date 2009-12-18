@@ -77,7 +77,7 @@ PreferencesAssistant.prototype.handleTextFieldUpdate = function(event){
     username: this.user_model['username'],
     password: this.user_model['password']
   })
-  console.log(Object.toJSON(cookie.get()))
+  // console.log(Object.toJSON(cookie.get()))
 }
 
 PreferencesAssistant.prototype.activate = function(event) {
@@ -96,7 +96,7 @@ PreferencesAssistant.prototype.cleanup = function(event) {
 	   a result of being popped off the scene stack */
 
   // Calling TextFieldUpdate in case when cookie was destroyed by toggleDrawer
-  Mojo.Event.send(this.controller.get('login'), Mojo.Event.propertyChange)
+//  if(this.controller.get('anonim').value) Mojo.Event.send(this.controller.get('login'), Mojo.Event.propertyChange)
 
   Mojo.Event.stopListening(this.controller.get('anonim'), Mojo.Event.propertyChange, this.toggleDrawer)
   Mojo.Event.stopListening(this.controller.get('login'), Mojo.Event.propertyChange, this.handleTextFieldUpdate)

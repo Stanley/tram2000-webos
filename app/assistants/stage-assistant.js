@@ -10,7 +10,7 @@ StageAssistant.prototype.setup = function() {
 	appMenuModel = {
 	  	items: [
 	    	{label: "Informacje", command: 'do-about'},
-	    	{label: "Opcje", command: 'do-pref'},	  	
+	    	{label: "Ustawienia", command: 'do-pref'},	  	
 	  		{label: "Baza danych", items:[
 	  			{label: "Przystanki", command: 'do-stops'},
 	  			{label: "Wiadomości", command: 'do-stops'}
