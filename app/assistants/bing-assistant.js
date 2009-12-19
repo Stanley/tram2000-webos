@@ -19,6 +19,8 @@ BingAssistant.prototype.setup = function() {
     //  console.log(stops)
 
 	this.seconds = 0;
+//    this.speed = 0
+//    this.lat_lng;
 	
 	//this.interval = setInterval("StageAssistant.handleUpdate()", 1000)
     this.timerRollHandler = this.timerRoll.bind(this);
@@ -28,17 +30,50 @@ BingAssistant.prototype.setup = function() {
         method:"startTracking",
         parameters:{
 			'accuracy'     : 1,
-			'responseTime' : 1
+			'responseTime' : 1,
+            'subscribe'    : true
 		},
-        onSuccess:function(){
-            Mojo.Controller.getAppController().showBanner('Sukces', {source: 'notification'})
-        }        ,
-        onFailure: function(){
-            Mojo.Controller.getAppController().showBanner('Błąd GPS', {source: 'notification'})
+        onSuccess: this.onGpsSuccess.bind(this),
+        onFailure: function(status){
+//            console.log("Porażka gps" + Object.toJSON(errorCode))
+            Mojo.Controller.getAppController().showBanner('GPS: ' + status.errorCode, {source: 'notification'})
         }        
     })
 
 }
+
+BingAssistant.prototype.onGpsSuccess = function(data) {
+ // Handle successful queries including receiving results
+// console.log(Object.toJSON(data))
+//    console.log("Czas: " + data.timestamp)
+//    console.log("Lat: " + data.latitude)
+//    console.log("Lng: " + data.longitude)
+
+
+    var p2 = {lat: data.latitude, lng: data.longitude, time: data.timestamp}
+    if(this.lat_lng){
+        var p1 = this.lat_lng;
+        var v = 0
+        if(p1.lat != p2.lat || p1.lng != p2.lng)
+            v = length(p1, p2) * ((p2.time - p1.time) * (100/36))
+        this.controller.get("speed").update(Math.round(v * 10) / 10 + " km/h");
+    }
+    this.lat_lng = p2;
+
+
+    function length(p1, p2){
+        var R = 6371; // Radius of the earth in km
+        var dLat = (p2.lat - p1.lat).toRad();  // Javascript functions in radians
+        var dLon = (p2.lng - p1.lng).toRad();
+        var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(p1.lat.toRad()) * Math.cos(p2.lat.toRad()) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+        var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c; // Distance in km
+    }
+
+// console.log(Object.toJSON(status))
+};
 
 BingAssistant.prototype.dbSuccessHandler = function(transaction, SQLResultSet) {
  // Handle successful queries including receiving results
@@ -98,4 +133,8 @@ BingAssistant.prototype.cleanup = function(event) {
 	   a result of being popped off the scene stack */
 	   
 	clearInterval(this.interval)
+}
+
+Number.prototype.toRad = function() {  // convert degrees to radians
+  return this * Math.PI / 180;
 }
