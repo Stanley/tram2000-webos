@@ -2,8 +2,8 @@ function SyncTests() {
 
 }
 
+// Symuluj awarię
 
-
-SyncTests.prototype.test = function() {
-
+SyncTests.prototype.testCallback = function() {
+    
 }
