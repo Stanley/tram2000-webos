@@ -19,33 +19,23 @@ StopsByNameAssistant.prototype.setup = function() {
   $('#header').text(this.stops_name)
 
   this.db = openDatabase("tram2000", 1, "Tram2000", 250000)
-  var sql = "SELECT lat, lng FROM 'stops' WHERE name = ?"
 
-//  this.offset = offset
-//  this.count = count
-
+  var sql = "SELECT geo FROM 'stops' WHERE name = ?"
   this.db.transaction(    
-    function (transaction) { 
+    function (transaction) {
       transaction.executeSql(sql, [this.stops_name], this.dbSuccessSelectHandler.bind(this), this.dbFailureHandler.bind(this)); 
-  }.bind(this))
+    }.bind(this)
+)
 }
 
 StopsByNameAssistant.prototype.dbSuccessSelectHandler = function(transaction, result) {
-
   var c = "A".charCodeAt()
   var markers = ""
-  var lat_sum = 0
-  var lng_sum = 0
-  var len = result.rows.length  
 
-  for(var i=0; i < len; i++) {
-    var row = result.rows.item(i)
-
-    markers += "&markers=label:" + String.fromCharCode(c+i) + "|" + row.lng + "," + row.lat
-    lat_sum += row.lat
-    lng_sum += row.lng
+  for(var i=0; i < result.rows.length; i++) {
+    var point = decodeGeoHash(result.rows.item(i).geo)
+    markers += "&markers=label:" + String.fromCharCode(c+i) + "|" + point.latitude[2] + "," + point.longitude[2]
   }
-  
   $('body').css('background', 'url("http://maps.google.com/maps/api/staticmap?size=320x480' + markers + '&sensor=false&key=ABQIAAAAzr2EBOXUKnm_jVnk0OJI7xSsTL4WIgxhMZ0ZK_kHjwHeQuOD4xQJpBVbSrqNn69S6DOTv203MQ5ufA")')
 }
 

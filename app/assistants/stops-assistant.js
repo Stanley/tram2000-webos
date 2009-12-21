@@ -1,7 +1,7 @@
 function StopsAssistant() {
 }
 
-StopsAssistant.prototype.setup = function() {
+StopsAssistant.prototype.setup = function(){
 
   // Aplication menu setup
 	var menu_model = {
@@ -21,6 +21,19 @@ StopsAssistant.prototype.setup = function() {
   // Open html5 storage connection
   this.db = openDatabase("tram2000", 1, "Tram2000", 250000)
 
+  // Create stops table if doesn't exist
+  this.db.transaction(
+    function (transaction) {
+      var sql = "CREATE TABLE IF NOT EXISTS stops (id INTEGER PRIMARY KEY, name TEXT, geo TEXT)"
+      transaction.executeSql(sql, [],
+        function(){
+          console.log("Table was successfully created.")
+        },
+        this.dbFailureHandler.bind(this)
+      )
+    }.bind(this)
+  )
+
   var list_attributes = {
     renderLimit: 200,
 //	  lookahead: 15,
@@ -35,32 +48,25 @@ StopsAssistant.prototype.setup = function() {
 
   this.listTapHandler = this.listTapHandler.bindAsEventListener(this)
   Mojo.Event.listen(this.listWidget, Mojo.Event.listTap, this.listTapHandler)
-
 }
 
 StopsAssistant.prototype.refreshList = function(){
-  var sql = "SELECT name, COUNT(*) AS count FROM 'stops' GROUP BY name ORDER BY name"
-
+  var sql = "SELECT name, COUNT(*) AS count FROM stops GROUP BY name ORDER BY name"
   console.log("refreshing")
-
-  this.db.transaction(    
-    function (transaction) { 
-      transaction.executeSql(sql, [], this.dbSuccessSelectHandler.bind(this, "%"), this.dbFailureHandler.bind(this))
-  }.bind(this))
-
+  this.db.transaction(
+    function (transaction) {
+      transaction.executeSql(sql, [], this.dbSuccessSelectHandler.bind(this, "%", 0), this.dbFailureHandler.bind(this))
+    }.bind(this)
+  )
 }
 
 StopsAssistant.prototype.showList = function(filterString, listWidget, offset, count){
-
   var sql = "SELECT name, COUNT(*) AS count FROM 'stops' WHERE name LIKE ? OR name LIKE ? GROUP BY name ORDER BY name LIMIT ?, ?"
-
-//  this.offset = offset
-//  this.count = count
-
   this.db.transaction(    
     function (transaction) { 
       transaction.executeSql(sql, [filterString + "%", "% " + filterString + "%", offset, count], this.dbSuccessSelectHandler.bind(this, filterString, offset), this.dbFailureHandler.bind(this)); 
-  }.bind(this))
+    }.bind(this)
+  )
 }
 
 StopsAssistant.prototype.listTapHandler = function(event){
@@ -69,7 +75,7 @@ StopsAssistant.prototype.listTapHandler = function(event){
 
 StopsAssistant.prototype.dbSuccessSelectHandler = function(filterString, offset, transaction, result) {
   // Handle successful queries including receiving results
-  console.log(", Sql success select:")
+  console.log("SQL select: success")
 
   var subset = []
 
@@ -85,7 +91,7 @@ StopsAssistant.prototype.dbSuccessSelectHandler = function(filterString, offset,
     this.listWidget.mojo.setLength(subset.length)
     this.listWidget.mojo.setCount(subset.length)
   }
-  this.filter = filterString
+  this.filter = filterString    
 
 //  if (this.offset > 50)
 //    this.list.push.apply(this.list, subset)
@@ -104,15 +110,13 @@ StopsAssistant.prototype.updateListWithNewItems = function(listWidget, offset, i
 }
 
 StopsAssistant.prototype.dbFailureHandler = function(transaction, error) {
-  console.log('An error occurred')
-  console.log(error.message)
+  console.log('An SQL error occurred: ' + error.message)
 }
 
 StopsAssistant.prototype.clearDbSuccess = function(){
   var cookie = new Mojo.Model.Cookie('stops')
   cookie.put(0)
-  Mojo.Controller.getAppController().showBanner('Baza przystanków jest pusta.', {source: 'notification'})
-  this.refreshList.bind(this)
+  this.listWidget.mojo.setLength(0)
 }
 
 StopsAssistant.prototype.handleCommand = function(event) {
@@ -122,7 +126,7 @@ StopsAssistant.prototype.handleCommand = function(event) {
       case 'do-stops-sync':
         var couch = new CouchDB(this.db, "stops")
         couch.pull(new Mojo.Model.Cookie('stops').get(), function(){
-          this.refreshList.bind(this)
+          this.refreshList()
         }.bind(this))
         break
 				
