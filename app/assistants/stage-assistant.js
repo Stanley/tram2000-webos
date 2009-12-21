@@ -9,13 +9,13 @@ StageAssistant.prototype.setup = function() {
 
 	appMenuModel = {
 	  	items: [
-	    	{label: "Informacje", command: 'do-about'},
-	    	{label: "Ustawienia", command: 'do-pref'},	  	
+	    	{label: "Informacje", command: 'about'},
+	    	{label: "Ustawienia", command: 'pref'},
 	  		{label: "Baza danych", items:[
-	  			{label: "Przystanki", command: 'do-stops'},
-	  			{label: "Wiadomości", command: 'do-stops'}
+	  			{label: "Przystanki", command: 'stops'},
+	  			{label: "Podróże", command: 'journeys'}
 	  		]},	    	
-	    	{label: "Pomoc", command: 'do-help'}	    	
+	    	{label: "Pomoc", command: 'help'}
 	  	]
 	};
 
@@ -30,7 +30,7 @@ StageAssistant.prototype.handleCommand = function(event) {
 	if(event.type == Mojo.Event.command) {
 
   		switch(event.command) {
-    		case 'do-about':
+    		case 'about':
       			Mojo.Controller.stageController.activeScene().showAlertDialog({
             		onChoose: function(value) {},
             		title: $L("Tram2000 v1.0"),
@@ -39,19 +39,23 @@ StageAssistant.prototype.handleCommand = function(event) {
               			{label:$L("OK"), value:""}
             		]
       			});
-    			break;
+    			break
     			
-			case 'do-pref':
-  				this.controller.pushScene("preferences");
-				break;
+			case 'pref':
+  				this.controller.pushScene("preferences")
+				break
 
-			case 'do-help':
-				this.controller.pushScene("help");
-				break;
+			case 'help':
+				this.controller.pushScene("help")
+				break
 				
-			case 'do-stops':
-				this.controller.pushScene("stops");
-				break;
+			case 'stops':
+				this.controller.pushScene("stops")
+				break
+
+			case 'journeys':
+				this.controller.pushScene("journeys")
+				break
 							
 		}
 	}

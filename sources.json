@@ -1,35 +1,41 @@
 [
-    {"source": "app/assistants/stage-assistant.js"},
-    {
-        "scenes": "index",
-        "source": "app/assistants/index-assistant.js"
-    },
-    {
-        "scenes": "bing",
-        "source": "app/assistants/bing-assistant.js"
-    },
-    {
-        "scenes": "home",
-        "source": "app/assistants/home-assistant.js"
-    },
-    {
-        "scenes": "main",
-        "source": "app/assistants/main-assistant.js"
-    },
-    {
-        "scenes": "preferences",
-        "source": "app/assistants/preferences-assistant.js"
-    },
-    {
-        "scenes": "help",
-        "source": "app/assistants/help-assistant.js"
-    },
-    {
-        "scenes": "stops",
-        "source": "app/assistants/stops-assistant.js"
-    },
-    {
-        "scenes": "stops-by-name",
-        "source": "app/assistants/stops-by-name-assistant.js"
-    }
+  {
+    "source": "app/assistants/stage-assistant.js"
+  },
+  {
+    "scenes": "index",
+    "source": "app/assistants/index-assistant.js"
+  },
+  {
+    "scenes": "bing",
+    "source": "app/assistants/bing-assistant.js"
+  },
+  {
+    "scenes": "home",
+    "source": "app/assistants/home-assistant.js"
+  },
+  {
+    "scenes": "main",
+    "source": "app/assistants/main-assistant.js"
+  },
+  {
+    "scenes": "preferences",
+    "source": "app/assistants/preferences-assistant.js"
+  },
+  {
+    "scenes": "help",
+    "source": "app/assistants/help-assistant.js"
+  },
+  {
+    "scenes": "stops",
+    "source": "app/assistants/stops-assistant.js"
+  },
+  {
+    "scenes": "stops-by-name",
+    "source": "app/assistants/stops-by-name-assistant.js"
+  },
+  {
+    "scenes": "journeys",
+    "source": "app/assistants/journeys-assistant.js"
+  }
 ]
