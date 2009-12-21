@@ -44,20 +44,49 @@ BingAssistant.prototype.setup = function() {
 
 BingAssistant.prototype.onGpsSuccess = function(data) {
  // Handle successful queries including receiving results
-// console.log(Object.toJSON(data))
-//    console.log("Czas: " + data.timestamp)
-//    console.log("Lat: " + data.latitude)
-//    console.log("Lng: " + data.longitude)
-
-
     var p2 = {lat: data.latitude, lng: data.longitude, time: data.timestamp}
+
     if(this.lat_lng){
-        var p1 = this.lat_lng;
+        var p1 = this.lat_lng
         var v = 0
+
+        // Oblicz prędkość chwilową
         if(p1.lat != p2.lat || p1.lng != p2.lng)
             v = length(p1, p2) * ((p2.time - p1.time) * (100/36))
-        this.controller.get("speed").update(Math.round(v * 10) / 10 + " km/h");
+
+        // Sprawdź czy jesteś w pobliżu przystanku
+        if(v == 0){
+          var sql = "SELECT id FROM stops WHERE SUBSTR(geo,0,9) IN (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+          var geohash = encodeGeoHash(p2.lat, p2.lng).substr(0,8)
+
+          var neighbors = {}
+          neighbors.top          = calculateAdjacent(geohash, "top")
+          neighbors.top_right    = calculateAdjacent(neighbors.top, "right")
+          neighbors.top_left     = calculateAdjacent(neighbors.top, "left")
+          neighbors.bottom       = calculateAdjacent(geohash, "bottom")
+          neighbors.bottom_right = calculateAdjacent(neighbors.bottom, "right")
+          neighbors.bottom_left  = calculateAdjacent(neighbors.bottom, "left")
+          neighbors.right        = calculateAdjacent(geohash, "right")
+          neighbors.left         = calculateAdjacent(geohash, "left")
+
+          this.db.transaction(
+            function (transaction) {
+              transaction.executeSql(sql, [geohash, neighbors.top, neighbors.top_right, neighbors.top_left, neighbors.bottom, neighbors.bottom_right, neighbors.bottom_left, neighbors.right, neighbors.left],
+                this.dbSuccessHandler.bind(this),
+                this.dbFailureHandler.bind(this)
+              )
+            }.bind(this)
+          )
+        }
+
+        this.controller.get("speed").update(Math.round(v * 10) / 10 + " km/h")
+
     }
+    // console.log(Object.toJSON(data))
+    console.log("Czas: " + data.timestamp)
+    console.log("Lat: " + data.latitude)
+    console.log("Lng: " + data.longitude)
+
     this.lat_lng = p2;
 
 
@@ -76,14 +105,21 @@ BingAssistant.prototype.onGpsSuccess = function(data) {
 };
 
 BingAssistant.prototype.dbSuccessHandler = function(transaction, SQLResultSet) {
- // Handle successful queries including receiving results
- console.log(SQLResultSet)
+  // Handle successful queries including receiving results
+  console.log("SQL success: " + SQLResultSet.rows.length)
+  if(SQLResultSet.rows.length > 1){
+    // Szukam najbliższego przystanku
+  }
+  else if(SQLResultSet.rows.length == 1){
+    // Rozpoczynam proces zbierania danych...
+  }
 };
 
 
 BingAssistant.prototype.dbFailureHandler = function(transaction, error) {
 
- console.log('An error occurred', error.message);
+  console.log('An SQL error occurred: '+ error.message);
+  console.log(Object.toJSON(transaction))
 
  // Handle errors or other failure modes
 };
@@ -108,16 +144,16 @@ BingAssistant.prototype.activate = function(event) {
 //    transaction.executeSql('SOME SQL', [], this.successHandler.bind(this), this.failureHandler.bind(this));
 //  })
 
-  var sql = "CREATE TABLE IF NOT EXISTS 'stops' (id INTEGER PRIMARY KEY, name TEXT, lat REAL, lng REAL)";  // check sqlite data types for other values
-
-  this.db.transaction(
-    function (transaction) { 
-      transaction.executeSql(sql, [],
-        this.dbSuccessHandler.bind(this),
-        this.dbFailureHandler.bind(this)); 
-    }.bind(this)); //this is important!
-
-console.log(Object.inspect(Mojo.Menu.editItem))
+//  var sql = "CREATE TABLE IF NOT EXISTS 'stops' (id INTEGER PRIMARY KEY, name TEXT, lat REAL, lng REAL)";  // check sqlite data types for other values
+//
+//  this.db.transaction(
+//    function (transaction) {
+//      transaction.executeSql(sql, [],
+//        this.dbSuccessHandler.bind(this),
+//        this.dbFailureHandler.bind(this));
+//    }.bind(this)); //this is important!
+//
+//console.log(Object.inspect(Mojo.Menu.editItem))
 
 
 }
