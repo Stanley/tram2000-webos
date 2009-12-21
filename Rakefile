@@ -22,3 +22,8 @@ desc 'Root emulator'
 task :ssh do
   sh "/opt/Palm/novacom/novacom -t open tty://"
 end
+
+desc 'Display logs and follow the output'
+task :log do
+  sh "clear && palm-log -f net.wasiutynski.tram2000"
+end
