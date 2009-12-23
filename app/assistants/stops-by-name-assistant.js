@@ -5,6 +5,7 @@ function StopsByNameAssistant(stops_name) {
 	   that needs the scene controller should be done in the setup function below. */
 
   this.stops_name = stops_name
+  this.markers = ""
 }
 
 StopsByNameAssistant.prototype.setup = function() {
@@ -22,21 +23,30 @@ StopsByNameAssistant.prototype.setup = function() {
 
   var sql = "SELECT geo FROM 'stops' WHERE name = ?"
   this.db.transaction(    
-    function (transaction) {
+    function(transaction){
       transaction.executeSql(sql, [this.stops_name], this.dbSuccessSelectHandler.bind(this), this.dbFailureHandler.bind(this)); 
     }.bind(this)
-)
+  )
+
+  this.controller.setupWidget(Mojo.Menu.commandMenu, {menuClass: 'no-fade'}, {items: [
+    {},
+    {toggleCmd: 'map', items:[
+      {label: 'Map', iconPath:'images/menu-icon-xapp-maps.png', command: 'map'},
+			{label: 'Satellite', iconPath:'images/menu-icon-satellite.png', command: 'sat'}
+	  ]},
+    {}
+  ]})
 }
 
 StopsByNameAssistant.prototype.dbSuccessSelectHandler = function(transaction, result) {
   var c = "A".charCodeAt()
-  var markers = ""
+//  var markers = ""
 
   for(var i=0; i < result.rows.length; i++) {
     var point = decodeGeoHash(result.rows.item(i).geo)
-    markers += "&markers=label:" + String.fromCharCode(c+i) + "|" + point.latitude[2] + "," + point.longitude[2]
+    this.markers += "&markers=label:" + String.fromCharCode(c+i) + "|" + point.latitude[2] + "," + point.longitude[2]
   }
-  $('body').css('background', 'url("http://maps.google.com/maps/api/staticmap?size=320x480' + markers + '&sensor=false&key=ABQIAAAAzr2EBOXUKnm_jVnk0OJI7xSsTL4WIgxhMZ0ZK_kHjwHeQuOD4xQJpBVbSrqNn69S6DOTv203MQ5ufA")')
+  $('body').css('background', 'url("http://maps.google.com/maps/api/staticmap?size=320x480' + this.markers + '&sensor=false&key=ABQIAAAAzr2EBOXUKnm_jVnk0OJI7xSsTL4WIgxhMZ0ZK_kHjwHeQuOD4xQJpBVbSrqNn69S6DOTv203MQ5ufA")')
 }
 
 StopsByNameAssistant.prototype.dbFailureHandler = function(transaction, error) {
@@ -59,4 +69,18 @@ StopsByNameAssistant.prototype.cleanup = function(event) {
 	/* this function should do any cleanup needed before the scene is destroyed as 
 	   a result of being popped off the scene stack */
   $('body').css('background', '')
+}
+
+StopsByNameAssistant.prototype.handleCommand = function(event) {
+
+  if(event.type == Mojo.Event.command) {
+    switch(event.command) {
+      case 'map':
+        $('body').css('background', 'url("http://maps.google.com/maps/api/staticmap?size=320x480' + this.markers + '&sensor=false&mobile=true&key=ABQIAAAAzr2EBOXUKnm_jVnk0OJI7xSsTL4WIgxhMZ0ZK_kHjwHeQuOD4xQJpBVbSrqNn69S6DOTv203MQ5ufA")')
+        break
+      case 'sat':
+        $('body').css('background', 'url("http://maps.google.com/maps/api/staticmap?size=320x480' + this.markers + '&sensor=false&key=ABQIAAAAzr2EBOXUKnm_jVnk0OJI7xSsTL4WIgxhMZ0ZK_kHjwHeQuOD4xQJpBVbSrqNn69S6DOTv203MQ5ufA&maptype=hybrid")') 
+        break
+    }
+  }
 }
