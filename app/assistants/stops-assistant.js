@@ -6,13 +6,13 @@ StopsAssistant.prototype.setup = function(){
   // Aplication menu setup
 	var menu_model = {
 	  	items: [
-	    	{label: "Informacje", command: 'do-about'},
-	    	{label: "Opcje", command: 'do-pref'},	  	
+	    	{label: "Informacje", command: 'about'},
+	    	{label: "Opcje", command: 'pref'},
 	  		{label: "Działania", items:[
-	  			{label: "Aktualizuj", command: 'do-stops-sync'},
-	  			{label: "Wyczyść", command: 'do-stops-remove'}
+	  			{label: "Aktualizuj", command: 'stops-sync'},
+	  			{label: "Wyczyść", command: 'stops-remove'}
 	  		]},	    	
-	    	{label: "Pomoc", command: 'do-help'}	    	
+	    	{label: "Pomoc", command: 'help'}
 	  	]
 	}
 
@@ -40,7 +40,8 @@ StopsAssistant.prototype.setup = function(){
     delay: 100,
     emptyTemplate: 'stops/list-empty',
     itemTemplate: 'stops/list-item',
-    filterFunction: this.showList.bind(this)
+    filterFunction: this.showList.bind(this),
+    dividerFunction: function(item){ return item.name[0] }
   }
 
   this.listWidget = this.controller.get('stops')
@@ -123,14 +124,14 @@ StopsAssistant.prototype.handleCommand = function(event) {
 
   if(event.type == Mojo.Event.command) {
     switch(event.command) {
-      case 'do-stops-sync':
+      case 'stops-sync':
         var couch = new CouchDB(this.db, "stops")
         couch.pull(new Mojo.Model.Cookie('stops').get(), function(){
           this.refreshList()
         }.bind(this))
         break
 				
-      case 'do-stops-remove':
+      case 'stops-remove':
         Mojo.Controller.stageController.activeScene().showAlertDialog({
           onChoose: function(value) {
             if(value == 'yes'){
