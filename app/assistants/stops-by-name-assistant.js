@@ -6,6 +6,7 @@ function StopsByNameAssistant(stops_name) {
 
   this.stops_name = stops_name
   this.markers = ""
+  this.panelOpen = false
 }
 
 StopsByNameAssistant.prototype.setup = function() {
@@ -17,7 +18,7 @@ StopsByNameAssistant.prototype.setup = function() {
 	
 	/* add event handlers to listen to events from widgets */
 
-  $('#header').text(this.stops_name)
+  $('#palm-header-toggle-menupanel').text(this.stops_name)
 
   this.db = openDatabase("tram2000", 1, "Tram2000", 250000)
 
@@ -36,6 +37,22 @@ StopsByNameAssistant.prototype.setup = function() {
 	  ]},
     {}
   ]})
+
+
+  this.menupanel = this.controller.sceneElement.querySelector('div[x-mojo-menupanel]')
+  this.scrim = this.controller.sceneElement.querySelector('div[x-mojo-menupanel-scrim]')
+
+  this.controller.listen('palm-header-toggle-menupanel', Mojo.Event.tap, this.toggleMenuPanel.bindAsEventListener(this))
+  this.controller.listen(this.scrim, Mojo.Event.tap, this.toggleMenuPanel.bindAsEventListener(this))
+
+  this._dragHandler = this._dragHandler.bindAsEventListener(this)
+
+  this.menuPanelVisibleTop = this.menupanel.offsetTop
+  this.menupanel.style.top = (0 - this.menupanel.offsetHeight - this.menupanel.offsetTop)+'px'
+  this.menuPanelHiddenTop = this.menupanel.offsetTop
+
+  this.scrim.hide()
+  this.scrim.style.opacity = 0
 }
 
 StopsByNameAssistant.prototype.dbSuccessSelectHandler = function(transaction, result) {
@@ -69,6 +86,71 @@ StopsByNameAssistant.prototype.cleanup = function(event) {
 	/* this function should do any cleanup needed before the scene is destroyed as 
 	   a result of being popped off the scene stack */
   $('body').css('background', '')
+}
+
+StopsByNameAssistant.prototype.animateMenuPanel = function(panel, reverse, callback){
+  Mojo.Animation.animateStyle(panel, 'top', 'bezier', {
+    from: this.menuPanelHiddenTop,
+    to: this.menuPanelVisibleTop,
+    duration: 0.12,
+    curve: 'over-easy',
+    reverse: reverse,
+    onComplete: callback
+  })
+}
+
+StopsByNameAssistant.prototype.menuPanelOn = function(){
+  var animateMenuCallback;
+  var that = this;
+  that.panelOpen = true;
+  this.scrim.style.opacity = 0;
+  this.scrim.show();
+  this.enableSceneScroller();
+  animateMenuCallback = function(){
+    that.menupanel.show();
+    that.animateMenuPanel(that.menupanel, false, Mojo.doNothing);
+  };
+  Mojo.Animation.Scrim.animate(this.scrim, 0, 1, animateMenuCallback);
+}
+
+StopsByNameAssistant.prototype.menuPanelOff = function(){
+  var animateMenuCallback;
+  var that = this;
+  that.panelOpen = false;
+  this.disableSceneScroller();
+  animateMenuCallback = function(){
+    that.menupanel.hide();
+    Mojo.Animation.Scrim.animate(that.scrim, 1, 0, that.scrim.hide.bind(that.scrim));
+  };
+  this.animateMenuPanel(this.menupanel, true, animateMenuCallback);
+}
+
+StopsByNameAssistant.prototype.toggleMenuPanel = function(e){
+  if(this.panelOpen){
+    this.menuPanelOff();
+  }else{
+    this.menuPanelOn();
+  }
+}
+
+/*
+ * Disable the scene scroller to prevent the web view from scrolling underneath whatever is being displayed on top of it
+ */
+StopsByNameAssistant.prototype.disableSceneScroller = function() {
+  this.controller.listen(this.controller.sceneElement, Mojo.Event.dragStart, this._dragHandler);
+}
+
+/** @private */
+StopsByNameAssistant.prototype._dragHandler = function(event) {
+  // prevents the scene from scrolling.
+  event.stop();
+}
+
+/*
+ * Enable the scene scroller (everything back to normal)
+ */
+StopsByNameAssistant.prototype.enableSceneScroller = function() {
+  this.controller.stopListening(this.controller.sceneElement, Mojo.Event.dragStart, this._dragHandler);
 }
 
 StopsByNameAssistant.prototype.handleCommand = function(event) {
