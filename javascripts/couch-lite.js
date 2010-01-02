@@ -100,6 +100,7 @@ CouchDB.prototype.pull = function(rev, callback){
     dataType: "jsonp",
     success: function(json){
       console.log(uri + "/_changes?since=" + rev)
+      // TODO: DB Error handling
       Mojo.Controller.getAppController().showBanner("Proszę czekać, trwa aktualizacja bazy.", {source: 'notification'})
       this.applay_changes(json.results, rev)
     }.bind(this),

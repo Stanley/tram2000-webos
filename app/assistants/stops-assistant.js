@@ -38,8 +38,8 @@ StopsAssistant.prototype.setup = function(){
     renderLimit: 200,
 //	  lookahead: 15,
     delay: 100,
-    emptyTemplate: 'stops/list-empty',
-    itemTemplate: 'stops/list-item',
+    emptyTemplate: 'stops/list/empty',
+    itemTemplate: 'stops/list/item',
     filterFunction: this.showList.bind(this),
     dividerFunction: function(item){ return item.name[0] }
   }
@@ -49,6 +49,8 @@ StopsAssistant.prototype.setup = function(){
 
   this.listTapHandler = this.listTapHandler.bindAsEventListener(this)
   Mojo.Event.listen(this.listWidget, Mojo.Event.listTap, this.listTapHandler)
+
+  this.controller.setupWidget(Mojo.Menu.commandMenu, undefined, {items: [{},{label: 'Refresh', icon:'refresh', command:'stops-sync'}]});
 }
 
 StopsAssistant.prototype.refreshList = function(){
@@ -125,8 +127,9 @@ StopsAssistant.prototype.handleCommand = function(event) {
   if(event.type == Mojo.Event.command) {
     switch(event.command) {
       case 'stops-sync':
+        this.controller.setMenuVisible(Mojo.Menu.commandMenu, false)
         var couch = new CouchDB(this.db, "stops")
-        couch.pull(new Mojo.Model.Cookie('stops').get(), function(){
+        couch.pull(new Mojo.Model.Cookie('stops').get() || 0, function(){
           this.refreshList()
         }.bind(this))
         break

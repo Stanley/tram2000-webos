@@ -7,37 +7,21 @@ function StopsByNameAssistant(stops_name) {
   this.stops_name = stops_name
   this.markers = ""
   this.panelOpen = false
+  this.dest = []
 }
 
 StopsByNameAssistant.prototype.setup = function() {
-	/* this function is for setup tasks that have to happen when the scene is first created */
-		
-	/* use Mojo.View.render to render view templates and add them to the scene, if needed. */
-	
-	/* setup widgets here */
-	
-	/* add event handlers to listen to events from widgets */
 
   $('#palm-header-toggle-menupanel').text(this.stops_name)
 
   this.db = openDatabase("tram2000", 1, "Tram2000", 250000)
 
-  var sql = "SELECT geo FROM 'stops' WHERE name = ?"
-  this.db.transaction(    
-    function(transaction){
-      transaction.executeSql(sql, [this.stops_name], this.dbSuccessSelectHandler.bind(this), this.dbFailureHandler.bind(this)); 
-    }.bind(this)
-  )
-
-  this.controller.setupWidget(Mojo.Menu.commandMenu, {menuClass: 'no-fade'}, {items: [
-    {},
+  this.controller.setupWidget(Mojo.Menu.commandMenu, {menuClass: 'no-fade'}, {items: [{},
     {toggleCmd: 'map', items:[
       {label: 'Map', iconPath:'images/menu-icon-xapp-maps.png', command: 'map'},
 			{label: 'Satellite', iconPath:'images/menu-icon-satellite.png', command: 'sat'}
-	  ]},
-    {}
+	  ]},{}
   ]})
-
 
   this.menupanel = this.controller.sceneElement.querySelector('div[x-mojo-menupanel]')
   this.scrim = this.controller.sceneElement.querySelector('div[x-mojo-menupanel-scrim]')
@@ -47,12 +31,23 @@ StopsByNameAssistant.prototype.setup = function() {
 
   this._dragHandler = this._dragHandler.bindAsEventListener(this)
 
-  this.menuPanelVisibleTop = this.menupanel.offsetTop
-  this.menupanel.style.top = (0 - this.menupanel.offsetHeight - this.menupanel.offsetTop)+'px'
-  this.menuPanelHiddenTop = this.menupanel.offsetTop
+  var list_attributes = {
+    itemTemplate: 'stops/list/next-stop',
+    itemsCallback: this.next_stops.bind(this)
+  }
 
-  this.scrim.hide()
-  this.scrim.style.opacity = 0
+  this.listWidget = this.controller.get('stops')
+  this.controller.setupWidget('stops', list_attributes)
+}
+
+StopsByNameAssistant.prototype.next_stops = function(listWidget, offset, limit){
+
+  var sql = "SELECT name, geo FROM 'stops' WHERE name = ?"
+  this.db.transaction(
+    function(transaction){
+      transaction.executeSql(sql, [this.stops_name], this.dbSuccessSelectHandler.bind(this), this.dbFailureHandler.bind(this));
+    }.bind(this)
+  )
 }
 
 StopsByNameAssistant.prototype.dbSuccessSelectHandler = function(transaction, result) {
@@ -61,9 +56,22 @@ StopsByNameAssistant.prototype.dbSuccessSelectHandler = function(transaction, re
 
   for(var i=0; i < result.rows.length; i++) {
     var point = decodeGeoHash(result.rows.item(i).geo)
-    this.markers += "&markers=label:" + String.fromCharCode(c+i) + "|" + point.latitude[2] + "," + point.longitude[2]
+    var char = String.fromCharCode(c+i)
+    this.markers += "&markers=label:" + char + "|" + point.latitude[2] + "," + point.longitude[2]
+    this.dest.push({char: char, name: result.rows.item(i).name})
   }
-  $('body').css('background', 'url("http://maps.google.com/maps/api/staticmap?size=320x480' + this.markers + '&sensor=false&key=ABQIAAAAzr2EBOXUKnm_jVnk0OJI7xSsTL4WIgxhMZ0ZK_kHjwHeQuOD4xQJpBVbSrqNn69S6DOTv203MQ5ufA")')
+
+  this.map_url = 'http://maps.google.com/maps/api/staticmap?size=480x480' + this.markers + '&sensor=false&key=ABQIAAAAzr2EBOXUKnm_jVnk0OJI7xSsTL4WIgxhMZ0ZK_kHjwHeQuOD4xQJpBVbSrqNn69S6DOTv203MQ5ufA'
+  $('#map').css('background-image', 'url('+ this.map_url +'&mobile=true)')
+
+  this.listWidget.mojo.noticeUpdatedItems(0, this.dest)
+
+  this.menuPanelVisibleTop = this.menupanel.offsetTop
+  this.menupanel.style.top = (0 - this.menupanel.offsetHeight - this.menupanel.offsetTop) + 'px'
+  this.menuPanelHiddenTop = this.menupanel.offsetTop
+
+  this.scrim.hide()
+//  this.scrim.style.opacity = 0
 }
 
 StopsByNameAssistant.prototype.dbFailureHandler = function(transaction, error) {
@@ -85,7 +93,7 @@ StopsByNameAssistant.prototype.deactivate = function(event) {
 StopsByNameAssistant.prototype.cleanup = function(event) {
 	/* this function should do any cleanup needed before the scene is destroyed as 
 	   a result of being popped off the scene stack */
-  $('body').css('background', '')
+//  $('body').css('background', '')
 }
 
 StopsByNameAssistant.prototype.animateMenuPanel = function(panel, reverse, callback){
@@ -154,14 +162,15 @@ StopsByNameAssistant.prototype.enableSceneScroller = function() {
 }
 
 StopsByNameAssistant.prototype.handleCommand = function(event) {
-
   if(event.type == Mojo.Event.command) {
     switch(event.command) {
       case 'map':
-        $('body').css('background', 'url("http://maps.google.com/maps/api/staticmap?size=320x480' + this.markers + '&sensor=false&mobile=true&key=ABQIAAAAzr2EBOXUKnm_jVnk0OJI7xSsTL4WIgxhMZ0ZK_kHjwHeQuOD4xQJpBVbSrqNn69S6DOTv203MQ5ufA")')
+        // Displays bottom background and pushes current to bottom
+        $('#map').css('background-image', $('#map').css('background-image').split(", ").reverse().join(", "))
         break
       case 'sat':
-        $('body').css('background', 'url("http://maps.google.com/maps/api/staticmap?size=320x480' + this.markers + '&sensor=false&key=ABQIAAAAzr2EBOXUKnm_jVnk0OJI7xSsTL4WIgxhMZ0ZK_kHjwHeQuOD4xQJpBVbSrqNn69S6DOTv203MQ5ufA&maptype=hybrid")') 
+        // Adds second background and display it
+        $('#map').css('background-image', 'url('+ this.map_url +'&maptype=hybrid), ' + $('#map').css('background-image').split(", ").first())
         break
     }
   }
