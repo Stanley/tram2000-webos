@@ -2,7 +2,10 @@ function MainAssistant() {
 }
 
 MainAssistant.prototype.setup = function() {
-	
+
+  if(this.controller.stageController.setWindowOrientation)
+    this.controller.stageController.setWindowOrientation("free")
+  
 	this.controller.setupWidget(Mojo.Menu.appMenu, appMenuAttr, appMenuModel);
 	this.controller.setupWidget('luncher', {}, {buttonLabel: 'Monitoruj', buttonClass: 'affirmative'});		
 	this.controller.setupWidget('stats', {}, {buttonLabel: 'Moje statystyki'});
@@ -12,7 +15,7 @@ MainAssistant.prototype.setup = function() {
 }
 
 MainAssistant.prototype.handleRenderBlip = function(){
-	this.controller.stageController.pushScene("bing")	
+	this.controller.stageController.pushScene("blip")	
 }
 
 MainAssistant.prototype.handleRenderStats = function(event){

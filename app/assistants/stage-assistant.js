@@ -19,9 +19,8 @@ StageAssistant.prototype.setup = function() {
 	  	]
 	};
 
-	this.db = openDatabase("tram2000", 1, "Tram2000", 250000);
-	this.controller.pushScene("main");	
-
+	this.db = openDatabase("tram2000", 1, "Tram2000", 250000)
+  this.controller.pushScene("main")
 }
 
 StageAssistant.prototype.handleCommand = function(event) {

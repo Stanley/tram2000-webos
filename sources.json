@@ -7,8 +7,8 @@
     "source": "app/assistants/index-assistant.js"
   },
   {
-    "scenes": "bing",
-    "source": "app/assistants/bing-assistant.js"
+    "scenes": "blip",
+    "source": "app/assistants/blip-assistant.js"
   },
   {
     "scenes": "home",
