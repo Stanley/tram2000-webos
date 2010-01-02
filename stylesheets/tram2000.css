@@ -2,25 +2,40 @@
 
 strong{
 	display: block;
-	font-size: 30px;
+	font-size: 20px;
 	margin: auto 
+}
+
+hr{
+  width: 80%;
+}
+
+#mojo-scene-stops-by-name{
+  height: 100%;
+}
+
+#map{
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.palm-menu-panel{
+  top: 20px;
+}
+
+.hidden{
+  display: none !important;
 }
 
 .center{
 	text-align: center;
 	margin: 0;
-	padding: 10px;
-}
-
-.scene-footer {
-	position:fixed;
-  margin: 5px;
-	bottom:0px; 
-	left:0px; 
-	right:0px;
-	-webkit-border-image: url(../images/fade-bottom-light-30px.png) 35 0 0 0 repeat repeat;
-	border-width: 35px 0px 0px 0px;
-	-webkit-palm-mouse-target: ignore;
+	padding: 5px;
 }
 
 .scene-footer-wrapper {
@@ -29,4 +44,67 @@ strong{
 
 .preview {
 	color: red
+}
+
+.journey{
+  line-height: 30px;
+  padding: 10px;
+  position: relative;
+}
+
+  .journey div{
+    position: absolute;
+    top:0;
+    right: 0;
+    font-size: 12px;
+    color: gray;
+    padding: 10px;
+  }
+
+ul.dynamic{
+  margin: 0;
+  padding: 0;
+  text-align: center;
+}
+
+  ul.dynamic li{
+    margin: 0;
+    padding: 0;
+    min-width: 40%;
+    display: inline-block;
+  }
+
+.my-scene-fade-bottom-with-arrow{
+	position: fixed;
+	bottom: 120px;
+	z-index: 10;
+	height: 54px;
+	width: 100%;
+	background:url(../images/fade-arrow-down.png) center bottom no-repeat;
+	-webkit-palm-mouse-target: ignore;
+}
+
+.my-scene-fade-top-with-arrow {
+	position: fixed;
+	top: 0;
+	z-index: 10;
+	height: 54px;
+	width: 100%;
+	background: url(../images/my-scene-fade-top-with-arrow.png) top center repeat-x;
+	-webkit-palm-mouse-target: ignore;
+}
+
+.scene-footer-spacer.two-buttons {
+	padding-bottom: 110px;
+}
+
+.scene-footer {
+	position:fixed;
+  bottom:0px;
+  left:0px;
+  right:0px;
+  padding-bottom: 3px;
+	-webkit-border-image: url(../images/fade-bottom-light-30px.png) 35 0 0 0 repeat repeat;
+	border-width: 35px 0px 0px 0px;
+	-webkit-palm-mouse-target: ignore;
 }
