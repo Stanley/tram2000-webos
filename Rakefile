@@ -5,7 +5,7 @@ task :default => :run
 
 desc 'Launch emulator'
 task :emulator do
-  sh "sudo /etc/init.d/vboxdrv setup && sudo modprobe -r kvm_intel && palm-emulator --start='Palm SDK 1.3.1.314 (320x480)'"
+  sh "sudo /etc/init.d/vboxdrv setup && sudo modprobe -r kvm_intel && palm-emulator --start='Palm SDK 1.3.5.368 (320x480)'"
 end
 
 desc 'Package, install & launch'
