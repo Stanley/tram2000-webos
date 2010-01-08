@@ -24,7 +24,7 @@ StopsAssistant.prototype.setup = function(){
   // Create stops table if doesn't exist
   this.db.transaction(
     function (transaction) {
-      var sql = "CREATE TABLE IF NOT EXISTS stops (id INTEGER PRIMARY KEY, name TEXT, geo TEXT)"
+      var sql = "CREATE TABLE IF NOT EXISTS stops (id INTEGER PRIMARY KEY, name TEXT, geo TEXT, nx TEXT)"
       transaction.executeSql(sql, [],
         function(){
           console.log("Table was successfully created.")
@@ -35,12 +35,13 @@ StopsAssistant.prototype.setup = function(){
   )
 
   var list_attributes = {
-    renderLimit: 200,
-//	  lookahead: 15,
+    renderLimit: 20,
+	  lookahead: 15,
     delay: 100,
     emptyTemplate: 'stops/list/empty',
     itemTemplate: 'stops/list/item',
     filterFunction: this.showList.bind(this),
+//    itemsCallback: this.showList.bind(this),
     dividerFunction: function(item){ return item.name[0] }
   }
 
@@ -51,6 +52,15 @@ StopsAssistant.prototype.setup = function(){
   Mojo.Event.listen(this.listWidget, Mojo.Event.listTap, this.listTapHandler)
 
   this.controller.setupWidget(Mojo.Menu.commandMenu, undefined, {items: [{},{label: 'Refresh', icon:'refresh', command:'stops-sync'}]});
+
+  this.controller.setupWidget('ProgressDrawer', {unstyled: true}, {open: false})
+  this.drawer = this.controller.get('ProgressDrawer')
+
+  this.model = {title: "Proszę czekać", value: 0}
+  this.progress = 0
+  this.controller.setupWidget('progressPill', {}, this.model)
+
+//  progressPillContainer
 }
 
 StopsAssistant.prototype.refreshList = function(){
@@ -64,6 +74,10 @@ StopsAssistant.prototype.refreshList = function(){
 }
 
 StopsAssistant.prototype.showList = function(filterString, listWidget, offset, count){
+  console.log('showList called')
+  		Mojo.Log.info($L("offset = ") + offset)
+		Mojo.Log.info($L("count = ") + count)
+  
   var sql = "SELECT name, COUNT(*) AS count FROM 'stops' WHERE name LIKE ? OR name LIKE ? GROUP BY name ORDER BY name LIMIT ?, ?"
   this.db.transaction(    
     function (transaction) { 
@@ -94,7 +108,16 @@ StopsAssistant.prototype.dbSuccessSelectHandler = function(filterString, offset,
     this.listWidget.mojo.setLength(subset.length)
     this.listWidget.mojo.setCount(subset.length)
   }
-  this.filter = filterString    
+  this.filter = filterString
+
+
+  if(subset.length == 0){
+//    $('#stops_container > #progressPill').appendTo("#progressPillContainer")
+//      .show()
+  } else {
+//    $('#progressPill').appendTo("#stops_container")
+//      .hide()
+  }
 
 //  if (this.offset > 50)
 //    this.list.push.apply(this.list, subset)
@@ -122,13 +145,24 @@ StopsAssistant.prototype.clearDbSuccess = function(){
   this.listWidget.mojo.setLength(0)
 }
 
+StopsAssistant.prototype.updateProgress = function(plus){
+  this.model.value = this.progress
+  this.model.title = "Aktualizacja: "+ Math.round(this.progress*100) +"%"
+  this.controller.modelChanged(this.model)
+  this.progress += plus
+}
+
 StopsAssistant.prototype.handleCommand = function(event) {
+
 
   if(event.type == Mojo.Event.command) {
     switch(event.command) {
       case 'stops-sync':
         this.controller.setMenuVisible(Mojo.Menu.commandMenu, false)
-        var couch = new CouchDB(this.db, "stops")
+
+        this.drawer.mojo.setOpenState(true)
+
+        var couch = new CouchDB(this.db, "stops", this)
         couch.pull(new Mojo.Model.Cookie('stops').get() || 0, function(){
           this.refreshList()
         }.bind(this))
@@ -140,7 +174,7 @@ StopsAssistant.prototype.handleCommand = function(event) {
             if(value == 'yes'){
               this.db.transaction(    
                 function (transaction) {
-                  transaction.executeSql("DELETE FROM stops", [], this.clearDbSuccess.bind(this) , function(){});
+                  transaction.executeSql("DROP TABLE stops", [], this.clearDbSuccess.bind(this) , function(){});
                 }.bind(this)
               )
             } 

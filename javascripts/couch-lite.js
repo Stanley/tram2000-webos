@@ -1,9 +1,10 @@
-function CouchDB(db, name) {
+function CouchDB(db, name, modelAssistant) {
 
   this.db = db
   this.name = name
   this.server = "http://db.wasiutynski.net/"
   this.uri = this.server + this.name
+  this.modelAssistant = modelAssistant
 
 }
 
@@ -26,8 +27,10 @@ CouchDB.prototype.pull = function(rev, callback){
     if(seq){ // Last db sequence which was successfully applied
       var cookie = new Mojo.Model.Cookie('stops')
       cookie.put(seq)
+      this.modelAssistant.updateProgress(1.0 / this.new_count)
     }
     if(!change){ // End of update process
+      this.modelAssistant.drawer.mojo.setOpenState(false)
       Mojo.Controller.getAppController().showBanner('Bieżąca wersja bazy danych: ' + seq, {source: 'notification'})
       callback()
       return
@@ -60,10 +63,16 @@ CouchDB.prototype.pull = function(rev, callback){
             transaction.executeSql("SELECT id FROM stops WHERE id = ? LIMIT 1", [doc.id],
               function(event, result){
                 console.log("select success")
+
+                if(doc['next'])
+                  nx = doc['next'].join(",")
+                else
+                  nx = null
+
                 if(result.rows.length == 1){
                   db.transaction(
                     function(transaction){
-                      transaction.executeSql("UPDATE stops SET name = ?, geo = ? WHERE id = ?", [doc.name, doc.geohash, doc.id],
+                      transaction.executeSql("UPDATE stops SET name = ?, geo = ?, nx = ? WHERE id = ?", [doc.name, doc.geohash, nx, doc.id],
                         function(event){
                           console.log("update sukces")
                           this.applay_changes(results, change.seq)
@@ -75,7 +84,7 @@ CouchDB.prototype.pull = function(rev, callback){
                 } else {
                   db.transaction(
                     function(transaction){
-                      transaction.executeSql("INSERT INTO stops (id, name, geo) VALUES (?, ?, ?)", [doc.id, doc.name, doc.geohash],
+                      transaction.executeSql("INSERT INTO stops (id, name, geo, nx) VALUES (?, ?, ?, ?)", [doc.id, doc.name, doc.geohash, nx],
                         function(event){
                           console.log("insert sukces")
                           this.applay_changes(results, change.seq)
@@ -102,9 +111,11 @@ CouchDB.prototype.pull = function(rev, callback){
       console.log(uri + "/_changes?since=" + rev)
       // TODO: DB Error handling
       Mojo.Controller.getAppController().showBanner("Proszę czekać, trwa aktualizacja bazy.", {source: 'notification'})
+      this.new_count = json.results.length
       this.applay_changes(json.results, rev)
     }.bind(this),
     error: function(){
+      Mojo.Controller.getAppController().showBanner("Nie mogę połączyć się ze zdalną bazą danych.", {source: 'notification'})
       console.log("Nie mogę połączyć się ze zdalną bazą danych.")
     }
   })
