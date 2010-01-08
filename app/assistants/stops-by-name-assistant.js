@@ -42,7 +42,7 @@ StopsByNameAssistant.prototype.setup = function() {
 
 StopsByNameAssistant.prototype.next_stops = function(listWidget, offset, limit){
 
-  var sql = "SELECT name, geo FROM 'stops' WHERE name = ?"
+  var sql = "SELECT name,geo,nx FROM 'stops' WHERE name = ?"
   this.db.transaction(
     function(transaction){
       transaction.executeSql(sql, [this.stops_name], this.dbSuccessSelectHandler.bind(this), this.dbFailureHandler.bind(this));
@@ -52,26 +52,59 @@ StopsByNameAssistant.prototype.next_stops = function(listWidget, offset, limit){
 
 StopsByNameAssistant.prototype.dbSuccessSelectHandler = function(transaction, result) {
   var c = "A".charCodeAt()
-//  var markers = ""
+  var next_stops = []
 
   for(var i=0; i < result.rows.length; i++) {
     var point = decodeGeoHash(result.rows.item(i).geo)
     var char = String.fromCharCode(c+i)
     this.markers += "&markers=label:" + char + "|" + point.latitude[2] + "," + point.longitude[2]
-    this.dest.push({char: char, name: result.rows.item(i).name})
+
+    // In order to query DB with ony one additional query, we need one variable which contains all next stops ids
+    if(result.rows.item(i).nx)
+      next_stops.push(result.rows.item(i).nx.split(","))
+    else
+      next_stops.push([])
   }
 
+  // Set background as google static map
   this.map_url = 'http://maps.google.com/maps/api/staticmap?size=480x480' + this.markers + '&sensor=false&key=ABQIAAAAzr2EBOXUKnm_jVnk0OJI7xSsTL4WIgxhMZ0ZK_kHjwHeQuOD4xQJpBVbSrqNn69S6DOTv203MQ5ufA'
   $('#map').css('background-image', 'url('+ this.map_url +'&mobile=true)')
 
-  this.listWidget.mojo.noticeUpdatedItems(0, this.dest)
+  var sql = "SELECT id,name FROM 'stops' WHERE id IN ("+ next_stops.flatten().join(",") +")"
+    this.db.transaction(
+    function(transaction){
+      transaction.executeSql(sql, [], function(transaction, result){
 
-  this.menuPanelVisibleTop = this.menupanel.offsetTop
-  this.menupanel.style.top = (0 - this.menupanel.offsetHeight - this.menupanel.offsetTop) + 'px'
-  this.menuPanelHiddenTop = this.menupanel.offsetTop
+        // Results by id
+        var by_id = {}
+        for(var i=0; i < result.rows.length; i++){
+          item = result.rows.item(i)
+          by_id[item.id] = item.name
+        }
 
-  this.scrim.hide()
-//  this.scrim.style.opacity = 0
+        // Converting ids to names
+        var dest = this.dest
+        var i = 0
+        $.each(next_stops, function(){
+          var stops = []
+          $.each(this, function(){
+            stops.push(by_id[this])
+          })
+          dest.push({char: String.fromCharCode(c+i), name: stops.join(", ") || "koniec trasy"})
+          i += 1
+        })
+
+        // Update list widget
+        this.listWidget.mojo.noticeUpdatedItems(0, this.dest)
+        this.menuPanelVisibleTop = this.menupanel.offsetTop
+        this.menupanel.style.top = (0 - this.menupanel.offsetHeight - this.menupanel.offsetTop) + 'px'
+        this.menuPanelHiddenTop = this.menupanel.offsetTop
+        this.scrim.hide()
+
+      }.bind(this), this.dbFailureHandler.bind(this))
+    }.bind(this)
+  )
+
 }
 
 StopsByNameAssistant.prototype.dbFailureHandler = function(transaction, error) {
