@@ -1,4 +1,7 @@
 [
+  {"source": "app/models/sqlite.js"},
+  {"source": "app/models/stop.js"},
+  {"source": "app/models/blip.js"},        
   {
     "source": "app/assistants/stage-assistant.js"
   },
