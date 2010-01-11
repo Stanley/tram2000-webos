@@ -6,7 +6,6 @@ function BlipAssistant() {
 
   //
   this.sqlite = new Sqlite("tram2000")
-
   //
 	this.seconds = 0
   // Latest timestamp returned by GPS
@@ -17,6 +16,8 @@ function BlipAssistant() {
   this.speed = 0
   // Latest know position
   this.lat_lng = false
+  // How many stops did we past
+  this.count = 0
 
 }
 
@@ -26,6 +27,9 @@ BlipAssistant.prototype.setup = function() {
   // Timer setup
   this.timerRollHandler = this.timerRoll.bind(this)
   this.interval = window.setInterval(this.timerRollHandler, 1000)
+
+  // Crate database table 'Blips' if does not exist
+  Blip.createTable(this.sqlite)
 
   // Start tracking
   this.controller.serviceRequest('palm://com.palm.location', {
@@ -59,11 +63,13 @@ BlipAssistant.prototype.onGpsSuccess = function(data) {
 
     // Estimate current speed (if there is a movement)
     if(p1.lat != p2.lat || p1.lng != p2.lng)
-      this.speed = Math.round( length(p1, p2) * ((p2.time - p1.time) * (100/36))  * 10) / 10
+      this.speed = Math.round(length(p1, p2) * ((p2.time - p1.time) * (100/36)))
+    else
+      this.speed = 0
 
     // append new data to blip
     if(this.blip)
-      this.blip.add( length(p2, this.blip.beg) )
+      this.blip.add( length(p2, this.blip) * 1000, Math.round(data.timestamp / 1000.0) )
 
     // Only if there is no speed,
     // check if we are close enough to a stop (or stops)
@@ -84,7 +90,7 @@ BlipAssistant.prototype.onGpsSuccess = function(data) {
       neighbors.left         = calculateAdjacent(geohash, "left")
 
       // Find all stops which are nearby
-      var sql = "SELECT id,lat,lng FROM stops WHERE SUBSTR(geo,0,9) IN (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+      var sql = "SELECT id,geo,nx FROM stops WHERE SUBSTR(geo,0,9) IN (?, ?, ?, ?, ?, ?, ?, ?, ?)"
       this.sqlite.db.transaction(
         function (transaction) {
           transaction.executeSql(sql, [geohash, neighbors.top, neighbors.top_right, neighbors.top_left, neighbors.bottom, neighbors.bottom_right, neighbors.bottom_left, neighbors.right, neighbors.left],
@@ -98,25 +104,10 @@ BlipAssistant.prototype.onGpsSuccess = function(data) {
 
   this.controller.get("speed").update(this.speed + " km/h")
 
-  console.log(Object.toJSON(data))
-//    console.log("Czas: " + data.timestamp)
-//    console.log("Lat: " + data.latitude)
-//    console.log("Lng: " + data.longitude)
+  //  console.log(Object.toJSON(data))
 
   // We no longer need previous position
   this.lat_lng = p2
-
-  // Returns length between two points
-  function length(p1, p2){
-    var R = 6371; // Radius of the earth in km
-    var dLat = (p2.lat - p1.lat).toRad();  // Javascript functions in radians
-    var dLon = (p2.lng - p1.lng).toRad();
-    var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-        Math.cos(p1.lat.toRad()) * Math.cos(p2.lat.toRad()) *
-        Math.sin(dLon/2) * Math.sin(dLon/2);
-    var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c; // Distance in km
-  }
 }
 
 BlipAssistant.prototype.onGpsFailure = function(status){
@@ -133,42 +124,49 @@ BlipAssistant.prototype.onGpsFailure = function(status){
   })
 }
 
+// On found nearby stops
 BlipAssistant.prototype.dbSuccessHandler = function(transaction, SQLResultSet) {
   // Handle successful queries including receiving results
-  console.log("SQL success: " + SQLResultSet.rows.length)
+  // console.log("SQL success: " + SQLResultSet.rows.length)
   var the_nearest_stop
 
-  if(SQLResultSet.rows.length > 1){
+  if(SQLResultSet.rows.length > 1) {
     // Find the closest stop
-    var closest_distance
-    for(;;){
-      var distance = "..."
+    var first_stop = SQLResultSet.rows.item(0)
+    // Infinity
+    var closest_distance = length(decodeGeoHash(first_stop.geo), this.lat_lng) // We can use this.lat_lng because it is the same as current position
+    the_nearest_stop = first_stop
+
+    for(var i=1; i<SQLResultSet.rows.length; i++){
+      var stop = SQLResultSet.rows.item(i)
+      var distance = length(decodeGeoHash(stop.geo), this.lat_lng)
       if(closest_distance > distance){
-        var closest_distance = distance
-        the_nearest_stop = "??"
+        closest_distance = distance
+        the_nearest_stop = stop
       }
     }
-  } else if(SQLResultSet.rows.length == 1){
+  } else if(SQLResultSet.rows.length == 1) {
     the_nearest_stop = SQLResultSet.rows.item(0)
   } else {
     // Nothing to do here
     return
   }
 
-  console.log("Najbliższy przystanek: " + the_nearest_stop.id)
+  // console.log("Najbliższy przystanek: " + the_nearest_stop.id)
+  // console.log("Next: " + Object.toJSON(this.blip.next))
 
   if(this.blip){
-    if(this.blip.beg_id != the_nearest_stop.id) {
-      // Koniec procesu zbierania danych
-      console.log("Saving blip")
+    // Check whether or not we arrived at stop
+    if(this.blip.beg_id != the_nearest_stop.id && this.blip.next.indexOf( the_nearest_stop.id ) != -1) {
+      // Finish and save current blip
       this.blip.end_id = the_nearest_stop.id
-      this.blip.save
+      this.blip.save()
       this.blip = false
     }
   } else {
-    // Początek procesu zbierania danych
-    console.log("Creating new blip")
-    this.blip = new Blip(this.db, this.timestamp, the_nearest_stop)
+    // Begin new blip
+    this.blip = new Blip(this.sqlite, this.timestamp, the_nearest_stop)
+    this.controller.get("count").update(this.count++)
   }
 }
 
@@ -184,26 +182,6 @@ BlipAssistant.prototype.timerRoll = function(event){
 BlipAssistant.prototype.activate = function(event) {
 	/* put in event handlers here that should only be in effect when this scene is active. For
 	   example, key handlers that are observing the document */
-
-//  console.log(this.db)
-
-
-//  this.db.transaction(function(t){ //.bind(this);
-//    transaction.executeSql('SOME SQL', [], this.successHandler.bind(this), this.failureHandler.bind(this));
-//  })
-
-//  var sql = "CREATE TABLE IF NOT EXISTS 'stops' (id INTEGER PRIMARY KEY, name TEXT, lat REAL, lng REAL)";  // check sqlite data types for other values
-//
-//  this.db.transaction(
-//    function (transaction) {
-//      transaction.executeSql(sql, [],
-//        this.dbSuccessHandler.bind(this),
-//        this.dbFailureHandler.bind(this));
-//    }.bind(this)); //this is important!
-//
-//console.log(Object.inspect(Mojo.Menu.editItem))
-
-
 }
 
 
@@ -220,9 +198,8 @@ BlipAssistant.prototype.cleanup = function(event) {
 }
 
 BlipAssistant.prototype.toggleDetails = function(){
-  console.log("showing details")
+  //  console.log("showing details")
   $("#details").toggleClass("hidden")
-
   // Nie mogłem połączyć się z siecią internet.
 }
 
@@ -262,6 +239,19 @@ BlipAssistant.prototype.handleCommand = function(event) {
   }
 }
 
-Number.prototype.toRad = function() {  // convert degrees to radians
-  return this * Math.PI / 180;
+// Converts degrees to radians
+Number.prototype.toRad = function() {
+  return this * Math.PI / 180
+}
+
+// Returns length between two points in km
+function length(p1, p2){
+  var R = 6371                            // Radius of the earth in km
+  var dLat = (p2.lat - p1.lat).toRad()    // Javascript functions in radians
+  var dLon = (p2.lng - p1.lng).toRad()
+  var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(p1.lat.toRad()) * Math.cos(p2.lat.toRad()) *
+      Math.sin(dLon/2) * Math.sin(dLon/2)
+  var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+  return R * c  // Return distance in km
 }
