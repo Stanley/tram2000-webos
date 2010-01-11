@@ -67,7 +67,7 @@ function decodeGeoHash(geohash) {
 	lat[2] = (lat[0] + lat[1])/2;
 	lon[2] = (lon[0] + lon[1])/2;
 
-	return { latitude: lat, longitude: lon};
+	return { lat: lat[2], lng: lon[2]};
 }
 
 function encodeGeoHash(latitude, longitude) {
