@@ -24,6 +24,10 @@ hr{
   background-position: center;
 }
 
+#progressPill{
+  text-align: center
+}
+
 .palm-menu-panel{
   top: 20px;
 }
@@ -43,7 +47,7 @@ hr{
 }
 
 .preview {
-	color: red
+  color: red;
 }
 
 .journey{
