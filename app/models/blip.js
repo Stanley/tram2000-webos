@@ -1,25 +1,122 @@
 // OBJECT
 // Creates table
-Blip.createTable = function(sqlite) {
+Blip.createTable = function(sqlite, callback) {
+  sqlite.db.transaction(
+
+
+    function (transaction) {
+      try{
+      var sql = "CREATE TABLE IF NOT EXISTS blips (time INTEGER PRIMARY KEY, beg INTEGER, end INTEGER, data TEXT)"
+      transaction.executeSql(sql, [],
+        callback,
+        sqlite.failureHandler.bind(this)
+      )
+        } catch(e) {console.log(e) }
+    }.bind(this)
+  )
+}
+
+Blip.count = 0
+
+// Connects to remote db, tries to sends all records one by one. If successfully, removes record from local db
+Blip.sendAll = function(sqlite, callback) {
+
+  var couch = new CouchDB(sqlite.db, "blips")
   sqlite.db.transaction(
     function (transaction) {
-      var sql = "CREATE TABLE IF NOT EXISTS blips (time INTEGER PRIMARY KEY, beg INTEGER, end INTEGER, data TEXT)"
-      transaction.executeSql(sql, [], function(){},
+      transaction.executeSql("SELECT * FROM blips", [],
+        function(transaction, result){
+
+          Blip.count = result.rows.length
+          for(var i=0; i < result.rows.length; i++) {
+            couch.push(result.rows.item(i), callback)
+          }
+        },
         sqlite.failureHandler.bind(this)
       )
     }.bind(this)
   )
 }
 
-// Connects to remote db, tries to sends all records one by one. If successfully, removes record from local db
-Blip.sendAll = function() {
-
-}
-
 // Journey is a sequence of blips, which were created one by one without any break.
 // Returns array of journeys.
-Blip.byJourney = function() {
+Blip.byJourney = function(sqlite, callback) {
 
+  sqlite.db.transaction(
+    function (transaction) {
+      // Select all blips:
+      // load data length instead of data itself (note: length equals journey duration in seconds)
+      // replace begin stop id with its name
+      // replace ending stop id with its name
+      var sql = "SELECT blips.time, length(blips.data) AS seconds, beg.name AS beg, end.name AS end FROM blips LEFT OUTER JOIN stops AS beg ON blips.beg = beg.id LEFT OUTER JOIN stops AS end ON blips.end = end.id ORDER BY time"
+      transaction.executeSql(sql, [],
+        function(transaction, result){
+
+          var items = []
+
+//                                    try{
+          for(var i=0; i < result.rows.length; i++) {
+
+            var row = result.rows.item(i)
+            //  console.log(Object.toJSON(row))
+//            var date = new Date(row.time)
+            
+            var item = {
+              "time": row.time, // ,
+              "beg": row.beg,
+              "end": row.end,
+              "dur": row.seconds, //Math.ceil(row.seconds / 60),
+              "dur_str": second_to_minutes(row.seconds),
+              "stops": 1
+            }
+
+            var prev = items[items.length - 1]
+
+//            if(prev)
+//              console.log( item.time +"-"+ prev.time +"-"+ prev.dur*1000 +"="+ (item.time - prev.time - prev.dur*1000) )
+
+            if(prev && item.time - prev.time - prev.dur*1000 < 1000){
+              // merge
+              prev.end = item.end
+              prev.dur += item.dur
+              prev.dur_str = second_to_minutes(prev.dur),
+              prev.stops += 1
+            } else {
+              items.push(item)
+            }
+          }
+
+//                                    } catch(e) {console.log(e)}
+          callback(items)
+        },
+        sqlite.failureHandler.bind(this)
+      )
+    }.bind(this)
+  )
+
+  function second_to_minutes(seconds){
+    var sec_str = seconds % 60
+    if(sec_str < 10)
+      sec_str = "0" + sec_str
+    return Math.floor(seconds / 60) + ":" + sec_str
+  }
+
+//
+//  return items
+}
+
+// Drops table and creates empty one
+Blip.dropTable = function(sqlite, callback){
+  sqlite.db.transaction(
+    function (transaction) {
+      try{
+      transaction.executeSql("DROP TABLE blips", [],
+        callback,
+        sqlite.failureHandler.bind(this)
+      )
+      }catch(e){console.log(e)}
+    }.bind(this)
+  )
 }
 
 // CLASS
@@ -39,6 +136,8 @@ function Blip(sqlite, time, beg){
 
   // Array of possible next stops
   this.next = beg.nx.split(",").map(parseInt)
+  // Array of another possible next stops (useful after transfer)
+  this.alternate_next = { }
 //  console.log(Object.toJSON(this.next))
 
   // Information kept in db
@@ -57,14 +156,14 @@ Blip.prototype.add = function(distance, timestamp){
   }
 
   // result is an integer between 0 and 255
-  // 0..127 represent negative numbers
-  // 128..255 represent 0 and positive numbers
+  // 0..63 represent negative numbers
+  // 64..127 represent 0 and positive numbers
   var result = Math.round(distance - this.sum)
-  var result_per_second = Math.round(result / seconds + 128)
+  var result_per_second = Math.round(result / seconds + 64)
   this.sum += result
   this.time = timestamp
 
-  if(result_per_second < 0 || result_per_second > 255)
+  if(result_per_second < 0 || result_per_second > 127)
     console.log("Impossible out of range error.")
 
 //  console.log("result: " + result_per_second)
