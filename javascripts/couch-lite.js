@@ -1,3 +1,12 @@
+// OBJECT
+
+CouchDB.failureHandler = function(XMLHttpRequest, textStatus, errorThrown){
+  console.log(Object.toJSON(XMLHttpRequest))
+  Mojo.Controller.getAppController().showBanner("Wystąpił błąd przy połączeniu ze zdalną bazą danych.", {source: 'notification'})
+}
+
+// CLASS
+
 function CouchDB(db, name, modelAssistant) {
 
   this.db = db
@@ -9,8 +18,16 @@ function CouchDB(db, name, modelAssistant) {
 }
 
 // GET a document from CouchDB, by id. Returns an Object.
-CouchDB.prototype.get = function(){
+CouchDB.prototype.get = function(id){
 
+
+  $.ajax({
+    url     :  uri +"/"+ id,
+    type    : "GET",
+    dataType: "jsonp",
+    success : function(doc){ console.log("couch get success") },
+    error   : CouchDB.failureHandler.bind(this)
+  })  
 }
 
 // GET changes between local and remote databases
@@ -104,29 +121,45 @@ CouchDB.prototype.pull = function(rev, callback){
   }
 
   $.ajax({
-    url:  uri + "/_changes?since=" + rev,
-    type: "GET",
+    url     : uri + "/_changes?since=" + rev,
+    type    : "GET",
     dataType: "jsonp",
-    success: function(json){
+    success : function(json){
       console.log(uri + "/_changes?since=" + rev)
       // TODO: DB Error handling
       Mojo.Controller.getAppController().showBanner("Proszę czekać, trwa aktualizacja bazy.", {source: 'notification'})
       this.new_count = json.results.length
       this.applay_changes(json.results, rev)
     }.bind(this),
-    error: function(){
-      Mojo.Controller.getAppController().showBanner("Nie mogę połączyć się ze zdalną bazą danych.", {source: 'notification'})
-      console.log("Nie mogę połączyć się ze zdalną bazą danych.")
-    }
+    error   : CouchDB.failureHandler.bind(this)
   })
 }
 
-// POST an array of documents to CouchDB
-CouchDB.prototype.push = function(){
+// Push one document to CouchDB
+CouchDB.prototype.push = function(doc, callback){
+
+//  console.log("pushing to: " +  this.uri +"/"+ doc.time)
+  try{
+
+//  var id = doc.id
+//    var doc2 = JSON.parse(Object.toJSON(doc))
+//  doc2.unset("data")
+//    console.log(Object.toJSON(doc))
+
+  $.ajax({
+    url     : this.uri,
+    type    : "POST",
+    data    : Object.toJSON(doc),
+    dataType: "json",
+    success : callback,
+    error   : CouchDB.failureHandler.bind(this)
+  })
+  } catch(e) {console.log(e)}
 }
 
+// This prototype should not exist
 CouchDB.prototype.handleSqlError = function(transaction, error){
   console.log("An SQL Error occured: " + err.message)
-  Mojo.Controller.getAppController().showBanner("Wystąpił błąd przy aktualizacji")
+  Mojo.Controller.getAppController().showBanner("Wystąpił błąd połączenia ze zdalną bazą danych.")
 }
 
