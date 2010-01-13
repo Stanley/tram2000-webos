@@ -38,6 +38,11 @@ StopsByNameAssistant.prototype.setup = function() {
 
   this.listWidget = this.controller.get('stops')
   this.controller.setupWidget('stops', list_attributes)
+
+  this.menuPanelVisibleTop = this.menupanel.offsetTop
+  this.menupanel.style.top = (0 - this.menupanel.offsetHeight - this.menupanel.offsetTop) + 'px'
+  this.menuPanelHiddenTop = this.menupanel.offsetTop
+  this.scrim.hide()
 }
 
 StopsByNameAssistant.prototype.next_stops = function(listWidget, offset, limit){
@@ -57,7 +62,7 @@ StopsByNameAssistant.prototype.dbSuccessSelectHandler = function(transaction, re
   for(var i=0; i < result.rows.length; i++) {
     var point = decodeGeoHash(result.rows.item(i).geo)
     var char = String.fromCharCode(c+i)
-    this.markers += "&markers=label:" + char + "|" + point.latitude[2] + "," + point.longitude[2]
+    this.markers += "&markers=label:" + char + "|" + point.lat + "," + point.lng
 
     // In order to query DB with ony one additional query, we need one variable which contains all next stops ids
     if(result.rows.item(i).nx)
@@ -96,10 +101,6 @@ StopsByNameAssistant.prototype.dbSuccessSelectHandler = function(transaction, re
 
         // Update list widget
         this.listWidget.mojo.noticeUpdatedItems(0, this.dest)
-        this.menuPanelVisibleTop = this.menupanel.offsetTop
-        this.menupanel.style.top = (0 - this.menupanel.offsetHeight - this.menupanel.offsetTop) + 'px'
-        this.menuPanelHiddenTop = this.menupanel.offsetTop
-        this.scrim.hide()
 
       }.bind(this), this.dbFailureHandler.bind(this))
     }.bind(this)

@@ -40,8 +40,8 @@ StopsAssistant.prototype.setup = function(){
     delay: 100,
     emptyTemplate: 'stops/list/empty',
     itemTemplate: 'stops/list/item',
+//    itemsCallback: this.itemsCallback.bind(this),
     filterFunction: this.showList.bind(this),
-//    itemsCallback: this.showList.bind(this),
     dividerFunction: function(item){ return item.name[0] }
   }
 
@@ -51,12 +51,12 @@ StopsAssistant.prototype.setup = function(){
   this.listTapHandler = this.listTapHandler.bindAsEventListener(this)
   Mojo.Event.listen(this.listWidget, Mojo.Event.listTap, this.listTapHandler)
 
-  this.controller.setupWidget(Mojo.Menu.commandMenu, undefined, {items: [{},{label: 'Refresh', icon:'refresh', command:'stops-sync'}]});
+  this.controller.setupWidget(Mojo.Menu.commandMenu, undefined, {items: [{},{label: 'Refresh', icon:'sync', command:'stops-sync'}]});
 
   this.controller.setupWidget('ProgressDrawer', {unstyled: true}, {open: false})
   this.drawer = this.controller.get('ProgressDrawer')
 
-  this.model = {title: "Proszę czekać", value: 0}
+  this.model = {title: "Proszę czekać...", value: 0}
   this.progress = 0
   this.controller.setupWidget('progressPill', {}, this.model)
 
@@ -75,49 +75,40 @@ StopsAssistant.prototype.refreshList = function(){
 
 StopsAssistant.prototype.showList = function(filterString, listWidget, offset, count){
   console.log('showList called')
-  		Mojo.Log.info($L("offset = ") + offset)
-		Mojo.Log.info($L("count = ") + count)
+  Mojo.Log.info($L("offset = ") + offset)
+  Mojo.Log.info($L("count = ") + count)
   
-  var sql = "SELECT name, COUNT(*) AS count FROM 'stops' WHERE name LIKE ? OR name LIKE ? GROUP BY name ORDER BY name LIMIT ?, ?"
+  var sql = "SELECT name, COUNT(*) AS count FROM 'stops' WHERE name LIKE ? GROUP BY name ORDER BY name LIMIT ?, ?"
   this.db.transaction(    
     function (transaction) { 
-      transaction.executeSql(sql, [filterString + "%", "% " + filterString + "%", offset, count], this.dbSuccessSelectHandler.bind(this, filterString, offset), this.dbFailureHandler.bind(this)); 
+      transaction.executeSql(sql, ["%" + filterString + "%", offset, count], this.dbSuccessSelectHandler.bind(this, filterString, offset), this.dbFailureHandler.bind(this)); 
     }.bind(this)
   )
 }
 
-StopsAssistant.prototype.listTapHandler = function(event){
+StopsAssistant.prototype.listTapHandler = function(event) {
   this.controller.stageController.pushScene('stops-by-name', event.item.name)
 }
 
 StopsAssistant.prototype.dbSuccessSelectHandler = function(filterString, offset, transaction, result) {
-  // Handle successful queries including receiving results
+
   console.log("SQL select: success")
 
   var subset = []
-
   for(var i=0; i < result.rows.length; i++) {
-    var row = result.rows.item(i)
-    subset.push(row)
+    subset.push(result.rows.item(i))
   }
 
-  this.listWidget.mojo.noticeUpdatedItems(offset, subset);
+  this.listWidget.mojo.noticeUpdatedItems(offset, subset)
 		
   // Set the list's lenght & count if we're not repeating the same filter string from an earlier pass
-  if (this.filter !== filterString) {
+//  if (this.filter !== filterString) {
     this.listWidget.mojo.setLength(subset.length)
     this.listWidget.mojo.setCount(subset.length)
-  }
-  this.filter = filterString
+//  }
+//  this.filter = filterString
 
 
-  if(subset.length == 0){
-//    $('#stops_container > #progressPill').appendTo("#progressPillContainer")
-//      .show()
-  } else {
-//    $('#progressPill').appendTo("#stops_container")
-//      .hide()
-  }
 
 //  if (this.offset > 50)
 //    this.list.push.apply(this.list, subset)
@@ -198,4 +189,8 @@ StopsAssistant.prototype.deactivate = function(event) {
 }
 
 StopsAssistant.prototype.cleanup = function(event) {
+}
+
+StopsAssistant.prototype.itemsCallback = function(listWidget, offset, count) {
+  console.log("WOOOOOOOOOOOOT itemsCallback")
 }
