@@ -11,7 +11,7 @@ function CouchDB(db, name, modelAssistant) {
 
   this.db = db
   this.name = name
-  this.server = "http://db.wasiutynski.net/"
+  this.server = "http://192.168.1.223:5984/"
   this.uri = this.server + this.name
   this.modelAssistant = modelAssistant
 
@@ -36,98 +36,56 @@ CouchDB.prototype.pull = function(rev, callback){
   var db = this.db
   var uri = this.uri
 
-  this.applay_changes = function(results, seq){
-    var change = results.shift()
-//      Mojo.Controller.getAppController().showBanner("Zostało: " + results.length, {source: 'notification'})
-    if(seq){ // Last db sequence which was successfully applied
-      var cookie = new Mojo.Model.Cookie('stops')
-      cookie.put(seq)
-      this.modelAssistant.updateProgress(1.0 / this.new_count)
-    }
-    if(!change){ // End of update process
-      this.modelAssistant.drawer.mojo.setOpenState(false)
-      Mojo.Controller.getAppController().showBanner('Bieżąca wersja bazy danych: ' + seq, {source: 'notification'})
-      callback()
-      return
-    }
+  // Save results in local db and update cookie with update date
+  this.bulkSave = function(results){
 
-    if(change.deleted){
-      // Destroy document
-      console.log(change.seq + ": usuń rekord: " + change.id)
-//        console.log("class =" + change.id.getClassName())
-      db.transaction(
-        function (transaction) {
-          transaction.executeSql("DELETE FROM stops WHERE id = ?", [parseInt(change.id)],
-            function(event){
-              console.log("delete sukces")
-              this.applay_changes(results, change.seq)
-            }.bind(this),
-            this.handleSqlError.bind(this)
+    var count = this.new_count
+    var modelAssistant = this.modelAssistant
+    var cookie = new Mojo.Model.Cookie('stops')
+
+    db.transaction(
+      function(transaction){
+        results.forEach(function(row){
+          var updated_at = row.key
+          var doc = row.value
+          // Calcutate geohash and replace latitude & longitude with it
+          var lng = doc.pop()
+          var lat = doc.pop()
+          doc.push(encodeGeoHash(lat, lng))
+          // Force the same id
+          doc.unshift(row.id)
+          // Notice: We don't need UPDATE query because of conflict resolution defined when created database
+          transaction.executeSql("INSERT INTO stops (id, name, loc, type, next, geo) VALUES (?, ?, ?, ?, ?, ?)", doc,
+            function(){
+              // console.log("insert or update sukces")
+              cookie.put(updated_at) // the newest record in db
+              modelAssistant.updateProgress(1.0 / count)
+            },
+            Sqlite.failureHandler
           )
-        }.bind(this)
-      )
-    } else {
-      // Download and save new document
-      $.ajax({
-        url:  uri +"/"+ change.id,
-        type: "GET",
-        dataType: "jsonp",
-        success: function(doc){
-          console.log(change.seq + ": stwórz lub zmień rekord:" + doc.id)
-          db.transaction(function(transaction){
-            transaction.executeSql("SELECT id FROM stops WHERE id = ? LIMIT 1", [doc.id],
-              function(event, result){
-                console.log("select success")
-
-                if(doc['next'])
-                  nx = doc['next'].join(",")
-                else
-                  nx = null
-
-                if(result.rows.length == 1){
-                  db.transaction(
-                    function(transaction){
-                      transaction.executeSql("UPDATE stops SET name = ?, geo = ?, nx = ? WHERE id = ?", [doc.name, doc.geohash, nx, doc.id],
-                        function(event){
-                          console.log("update sukces")
-                          this.applay_changes(results, change.seq)
-                        }.bind(this),
-                        this.handleSqlError.bind(this)
-                      )
-                    }.bind(this)
-                  )
-                } else {
-                  db.transaction(
-                    function(transaction){
-                      transaction.executeSql("INSERT INTO stops (id, name, geo, nx) VALUES (?, ?, ?, ?)", [doc.id, doc.name, doc.geohash, nx],
-                        function(event){
-                          console.log("insert sukces")
-                          this.applay_changes(results, change.seq)
-                        }.bind(this),
-                        this.handleSqlError.bind(this)
-                      )
-                    }.bind(this)
-                  )
-                }
-              }.bind(this),
-              this.handleSqlError.bind(this)
-            )
-          }.bind(this))
-        }.bind(this)
-      })
-    }
+        })
+      },
+      function(){ console.log("failure") },
+      function(){
+        modelAssistant.drawer.mojo.setOpenState(false) // Hide progress bar
+        Mojo.Controller.getAppController().showBanner('Bieżąca wersja: ' + cookie.get(), {source: 'notification'})
+        callback()
+      }
+    )
   }
 
+  // TODO: delete old records
+
   $.ajax({
-    url     : uri + "/_changes?since=" + rev,
+    url     : uri + "/_design/Stop/_view/by_updated_at?startkey=\"" + rev + "\"",
     type    : "GET",
     dataType: "jsonp",
     success : function(json){
-      console.log(uri + "/_changes?since=" + rev)
+      console.log(uri + "/_design/Stop/_view/by_updated_at?startkey=\"" + rev + "\"")
       // TODO: DB Error handling
       Mojo.Controller.getAppController().showBanner("Proszę czekać, trwa aktualizacja bazy.", {source: 'notification'})
-      this.new_count = json.results.length
-      this.applay_changes(json.results, rev)
+      this.new_count = json.rows.length // or total_rows - offset
+      this.bulkSave(json.rows)
     }.bind(this),
     error   : CouchDB.failureHandler.bind(this)
   })

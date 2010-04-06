@@ -24,7 +24,8 @@ StopsAssistant.prototype.setup = function(){
   // Create stops table if doesn't exist
   this.db.transaction(
     function (transaction) {
-      var sql = "CREATE TABLE IF NOT EXISTS stops (id INTEGER PRIMARY KEY, name TEXT, geo TEXT, nx TEXT)"
+      // var sql = "CREATE TABLE IF NOT EXISTS stops (id INTEGER PRIMARY KEY, name TEXT, geo TEXT, nx TEXT)"
+      var sql = "CREATE TABLE IF NOT EXISTS stops (id TEXT PRIMARY KEY ON CONFLICT REPLACE, name TEXT, loc TEXT, type INTEGER, geo TEXT, next TEXT)"
       transaction.executeSql(sql, [],
         function(){
           console.log("Table was successfully created.")
@@ -149,11 +150,11 @@ StopsAssistant.prototype.handleCommand = function(event) {
   if(event.type == Mojo.Event.command) {
     switch(event.command) {
       case 'stops-sync':
+        // Show progress bar and hide sync button
         this.controller.setMenuVisible(Mojo.Menu.commandMenu, false)
-
         this.drawer.mojo.setOpenState(true)
 
-        var couch = new CouchDB(this.db, "stops", this)
+        var couch = new CouchDB(this.db, "podsadzacz_development", this)
         couch.pull(new Mojo.Model.Cookie('stops').get() || 0, function(){
           this.refreshList()
         }.bind(this))

@@ -47,7 +47,7 @@ StopsByNameAssistant.prototype.setup = function() {
 
 StopsByNameAssistant.prototype.next_stops = function(listWidget, offset, limit){
 
-  var sql = "SELECT name,geo,nx FROM 'stops' WHERE name = ?"
+  var sql = "SELECT name,geo,next FROM 'stops' WHERE name = ?"
   this.db.transaction(
     function(transaction){
       transaction.executeSql(sql, [this.stops_name], this.dbSuccessSelectHandler.bind(this), this.dbFailureHandler.bind(this));

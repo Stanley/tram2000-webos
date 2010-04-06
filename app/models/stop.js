@@ -16,7 +16,7 @@ Stop.findNearby = function(sqlite, point, callback){
   neighbors.left         = calculateAdjacent(geohash, "left")
 
   // Find all stops which are nearby
-  var sql = "SELECT id,geo,nx FROM stops WHERE SUBSTR(geo,0,9) IN (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+  var sql = "SELECT id,geo,next FROM stops WHERE SUBSTR(geo,0,9) IN (?, ?, ?, ?, ?, ?, ?, ?, ?)"
   sqlite.db.transaction(
     function (transaction) {
       transaction.executeSql(sql, [geohash, neighbors.top, neighbors.top_right, neighbors.top_left, neighbors.bottom, neighbors.bottom_right, neighbors.bottom_left, neighbors.right, neighbors.left],
