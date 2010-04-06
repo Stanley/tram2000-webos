@@ -13,14 +13,15 @@
 			<div class="palm-row-wrapper">
 				<div x-mojo-element="ToggleButton" id="anonim"></div>
 				<div class="title left truncating-text">Anonimowe</div>
-			  <div class="preview">
-			    Logowanie anonimowe zwiększa Twoją prywatność, ale uniemożliwia tworzenie spersonalizowanych statystyk podróży. Wypełnij pole login i hasło, jeżeli chcesz automatyczne logowanie, lub sam login jeżeli chcesz wpisywać hasło przy synchronizacji.
-			  </div>
+        <div class="title preview">
+          Logowanie anonimowe zwiększa Twoją prywatność, ale uniemożliwia tworzenie spersonalizowanych statystyk podróży. Wypełnij pole login i hasło, jeżeli chcesz automatyczne logowanie, lub sam login jeżeli chcesz wpisywać hasło przy synchronizacji.
+        </div>
 			</div>
 		</div>
 	</div>
 </div>
 
+        
 <div id="login_and_password-drawer" x-mojo-element="Drawer">
   <div class="palm-group">
 	  <div class="palm-group-title" x-mojo-loc=''>Nazwa użytkownika i hasło</div>
@@ -28,19 +29,23 @@
      		<div class="palm-row first">
 			  <div class="palm-row-wrapper textfield-group" x-mojo-focus-highlight="true">
 				  <div class="title">
-        				<div id="login" name="login" x-mojo-element="TextField"></div>
+        		<div id="login" name="login" x-mojo-element="TextField"></div>
 				  </div>
 			  </div>
 		  </div>
      		<div class="palm-row last">
 			  <div class="palm-row-wrapper textfield-group" x-mojo-focus-highlight="true">
 				  <div class="title">
-        				<div id="password" name="password" x-mojo-element="PasswordField"></div>
+        	  <div id="password" name="password" x-mojo-element="PasswordField"></div>
 				  </div>
 			  </div>
 		  </div>
 	  </div>
   </div>
+  <div class="palm-info-text">
+    Nie masz konta? Utwórz nowe na: <a href="http://www.domena.pl">http://www.domena.pl</a>
+  </div>
+
 </div>
 
 <div class="palm-group">
@@ -48,8 +53,16 @@
 	<div class="palm-list">	
 		<div class="palm-row first">
 			<div class="palm-row-wrapper">
-				<div id="recieving_selector" x-mojo-element="ListSelector"></div>				
-				<div class="preview">
+				<div id="server_selector" x-mojo-element="ListSelector"></div>				
+				<div class="title preview">
+	     		Serwer, który udostępnia bazę danych przystanków oraz przyjmuje dane o Twoich podróżach. Korzystaj tylko z zaufanych źródeł. 
+   			</div>
+			</div>
+		</div>
+		<div class="palm-row">
+			<div class="palm-row-wrapper">
+				<div id="recieving_selector" x-mojo-element="ListSelector"></div>
+				<div class="title preview">
 	     		Sposób w jaki baza przystanków będzie aktualizowana
    			</div>
 			</div>
@@ -57,7 +70,7 @@
 		<div class="palm-row last">
 			<div class="palm-row-wrapper">
 				<div id="sending_selector" x-mojo-element="ListSelector"></div>				
-				<div class="preview">
+				<div class="title preview">
 	        Sposób w jaki chcesz wysyłać wygenerowane dane o podróżach
 	  		</div>  	
 			</div>

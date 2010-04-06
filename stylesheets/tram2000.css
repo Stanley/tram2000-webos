@@ -10,6 +10,11 @@ hr{
   width: 80%;
 }
 
+a{
+  color: inherit;
+  font-weight: bold;
+}
+
 #mojo-scene-stops-by-name{
   height: 100%;
 }

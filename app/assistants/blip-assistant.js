@@ -10,12 +10,15 @@ function BlipAssistant() {
 	this.seconds = 0
   // Latest timestamp returned by GPS
   this.timestamp = 0
+  this.positions_queue = []
   // Keeps active blip object
   this.blip = false
   // Latest know position
-  this.lat_lng = false
+//  this.lat_lng = false
   // How many stops did we past
   this.count = 0
+  //
+  this.last_measure = 0
 }
 
 // this function is for setup tasks that have to happen when the scene is first created
@@ -61,61 +64,8 @@ BlipAssistant.prototype.onGpsSuccess = function(data) {
 
   // Time which might be useful if we create new blip
   this.timestamp = data.timestamp
+  this.positions_queue.push({lat: data.latitude, lng: data.longitude, time: data.timestamp})
 
-  // Current speed
-  var speed = 0
-  // Current position
-  var p2 = {lat: data.latitude, lng: data.longitude, time: data.timestamp}
-
-  // If this is not a first call (so we can display current speed)
-  if(this.lat_lng){
-    // this will be our reference
-    var p1 = this.lat_lng
-
-    // Estimate current speed (if there is a movement)
-    if(p1.lat != p2.lat || p1.lng != p2.lng)
-      speed = Math.round(length(p1, p2) * ((p2.time - p1.time) * (100/36)))
-
-    // append new data to blip
-    if(this.blip)
-      this.blip.add( length(p2, this.blip) * 1000, Math.round(data.timestamp / 1000.0) )
-
-    // Only if there is no speed,
-    // check if we are close enough to a stop (or stops)
-    if(speed == 0){
-
-      // We substr geohash to 8 characters, which will give us bigger area in which we will be looking for nearby stops
-      var geohash = encodeGeoHash(p2.lat, p2.lng).substr(0,8)
-
-      // Find neighbours of above geohash
-      var neighbors = {}
-      neighbors.top          = calculateAdjacent(geohash, "top")
-      neighbors.top_right    = calculateAdjacent(neighbors.top, "right")
-      neighbors.top_left     = calculateAdjacent(neighbors.top, "left")
-      neighbors.bottom       = calculateAdjacent(geohash, "bottom")
-      neighbors.bottom_right = calculateAdjacent(neighbors.bottom, "right")
-      neighbors.bottom_left  = calculateAdjacent(neighbors.bottom, "left")
-      neighbors.right        = calculateAdjacent(geohash, "right")
-      neighbors.left         = calculateAdjacent(geohash, "left")
-
-      // Find all stops which are nearby
-      var sql = "SELECT id,geo,nx FROM stops WHERE SUBSTR(geo,0,9) IN (?, ?, ?, ?, ?, ?, ?, ?, ?)"
-      this.sqlite.db.transaction(
-        function (transaction) {
-          transaction.executeSql(sql, [geohash, neighbors.top, neighbors.top_right, neighbors.top_left, neighbors.bottom, neighbors.bottom_right, neighbors.bottom_left, neighbors.right, neighbors.left],
-            this.dbSuccessHandler.bind(this),
-            this.sqlite.failureHandler.bind(this)
-          )
-        }.bind(this)
-      )
-    }
-  }
-
-  //  console.log(Object.toJSON(data))
-  this.controller.get("speed").update(speed + " km/h")
-
-  // We no longer need previous position
-  this.lat_lng = p2
 }
 
 BlipAssistant.prototype.onGpsFailure = function(status){
@@ -137,17 +87,18 @@ BlipAssistant.prototype.dbSuccessHandler = function(transaction, SQLResultSet) {
   // Handle successful queries including receiving results
   // console.log("SQL success: " + SQLResultSet.rows.length)
   var the_nearest_stop
+  var position = this.positions_queue[this.positions_queue.length - 1]
 
   if(SQLResultSet.rows.length > 1) {
     // Find the closest stop
     var first_stop = SQLResultSet.rows.item(0)
     // Infinity
-    var closest_distance = length(decodeGeoHash(first_stop.geo), this.lat_lng) // We can use this.lat_lng because it is the same as current position
+    var closest_distance = length(decodeGeoHash(first_stop.geo), position) // We can use this.lat_lng because it is the same as current position
     the_nearest_stop = first_stop
 
     for(var i=1; i<SQLResultSet.rows.length; i++){
       var stop = SQLResultSet.rows.item(i)
-      var distance = length(decodeGeoHash(stop.geo), this.lat_lng)
+      var distance = length(decodeGeoHash(stop.geo), position)
       if(closest_distance > distance){
         closest_distance = distance
         the_nearest_stop = stop
@@ -215,12 +166,64 @@ BlipAssistant.prototype.dbSuccessHandler = function(transaction, SQLResultSet) {
 }
 
 BlipAssistant.prototype.timerRoll = function(event){
-  this.seconds++;
 
-  var min = Math.floor(this.seconds / 60);
-  var sec = this.seconds % 60;
+  // Update timer
+  this.seconds++
+  var min = Math.floor(this.seconds / 60)
+  var sec = this.seconds % 60
   if(sec < 10) sec = "0" + sec
-  this.controller.get("time").update(min + ":" + sec);
+  this.controller.get("time").update(min + ":" + sec)
+
+  this.last_measure++
+  // Calculate speed
+  var speed = 0
+  // Current position
+  var location = this.positions_queue.pop()
+
+  // If this is not a first call (so we can display current speed)
+  if(this.positions_queue.length == 1){
+    // this will be our reference
+    var prev_location = this.positions_queue.pop()
+
+    // Estimate current speed (if there is a movement)
+    if(prev_location.lat != location.lat || prev_location.lng != location.lng)
+      speed = Math.round(length(prev_location, location) * ((location.time - prev_location.time) * (100/36)))
+
+  } else if(location && this.last_measure == 1) {
+    // First call or GPS didn't return position
+    speed = 0
+  } else {
+    // GPS doesn't respond for 3 seconds or more
+    speed = -1
+  }
+
+  console.log("speed: " + speed)
+  //  console.log(Object.toJSON(data))
+  if(speed == -1) {
+    speed = "-"
+  } else {
+
+    // Only if there is no speed,
+    // check if we are close enough to a stop (or stops)
+    if(speed == 0) Stop.findNearby(this.sqlite, location, this.dbSuccessHandler.bind(this))
+
+    // append new data to blip
+    if(this.blip) {
+      this.blip.add( length(location, this.blip) * 1000, this.last_measure )
+      this.last_measure = 0
+    }
+
+    this.positions_queue = [location]
+
+    speed += " km/h"
+  }
+
+  this.controller.get("speed").update(speed)
+
+  // We no longer need previous position
+//  this.lat_lng = p2
+
+
 }
 
 BlipAssistant.prototype.activate = function(event) {

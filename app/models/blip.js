@@ -125,7 +125,7 @@ function Blip(sqlite, time, beg){
 
   this.sqlite = sqlite
   // Current time
-  this.time = Math.round(time / 1000.0)
+//  this.time = Math.round(time / 1000.0)
   // Distance between beginning and last position measurement
   this.sum = 0
 
@@ -148,12 +148,12 @@ function Blip(sqlite, time, beg){
 }
 
 // Adds given distance to data field
-Blip.prototype.add = function(distance, timestamp){
+Blip.prototype.add = function(distance,  seconds){
 
-  var seconds = timestamp - this.time
-  if(seconds < 1){
-    return // Should not happen
-  }
+//  var seconds = timestamp - this.time
+//  if(seconds < 1){
+//    return // Should not happen
+//  }
 
   // result is an integer between 0 and 255
   // 0..63 represent negative numbers
@@ -161,7 +161,7 @@ Blip.prototype.add = function(distance, timestamp){
   var result = Math.round(distance - this.sum)
   var result_per_second = Math.round(result / seconds + 64)
   this.sum += result
-  this.time = timestamp
+//  this.time = timestamp
 
   if(result_per_second < 0 || result_per_second > 127)
     console.log("Impossible out of range error.")
@@ -177,7 +177,7 @@ Blip.prototype.add = function(distance, timestamp){
 
 // Saves record in local db
 Blip.prototype.save = function() {
-  //  console.log("Saving blip: { time: " + this.beg_time + ", beg: " + this.beg_id + ", end: " + this.end_id + ", data: " + this.data + "}")
+    console.log("Saving blip: { time: " + this.beg_time + ", beg: " + this.beg_id + ", end: " + this.end_id + ", data: " + this.data + "}")
   this.sqlite.db.transaction(
     function(transaction){
       transaction.executeSql("INSERT INTO blips (time, beg, end, data) VALUES (?, ?, ?, ?)", [this.beg_time, this.beg_id, this.end_id, this.data],

@@ -19,8 +19,6 @@ function CouchDB(db, name, modelAssistant) {
 
 // GET a document from CouchDB, by id. Returns an Object.
 CouchDB.prototype.get = function(id){
-
-
   $.ajax({
     url     :  uri +"/"+ id,
     type    : "GET",
@@ -163,3 +161,6 @@ CouchDB.prototype.handleSqlError = function(transaction, error){
   Mojo.Controller.getAppController().showBanner("Wystąpił błąd połączenia ze zdalną bazą danych.")
 }
 
+CouchDB.prototype.authenticate = function(login, password){
+  
+}

@@ -44,6 +44,11 @@ PreferencesAssistant.prototype.setup = function() {
 	  {label: 'Ręcznie',        value: 'false'}
   ]
 
+  this.servers = [
+    {label: 'Kraków',  value: 'http://db.wasiutynski.net'},
+  ]
+
+  this.controller.setupWidget('server_selector', {label: 'Baza danych', choices: this.servers, modelProperty:'server', labelPlacement: Mojo.Widget.labelPlacementLeft}, sync_cookie)
 	this.controller.setupWidget('recieving_selector', {label: 'Odbieranie', choices: this.selector_opts, modelProperty:'recieve', labelPlacement: Mojo.Widget.labelPlacementLeft}, sync_cookie)
   this.controller.setupWidget('sending_selector', {label: 'Wysyłanie', choices: this.selector_opts, modelProperty:'send', labelPlacement: Mojo.Widget.labelPlacementLeft}, sync_cookie)
 
