@@ -65,8 +65,8 @@ StopsByNameAssistant.prototype.dbSuccessSelectHandler = function(transaction, re
     this.markers += "&markers=label:" + char + "|" + point.lat + "," + point.lng
 
     // In order to query DB with ony one additional query, we need one variable which contains all next stops ids
-    if(result.rows.item(i).nx)
-      next_stops.push(result.rows.item(i).nx.split(","))
+    if(result.rows.item(i).next)
+      next_stops.push(result.rows.item(i).next.split(","))
     else
       next_stops.push([])
   }
@@ -75,8 +75,8 @@ StopsByNameAssistant.prototype.dbSuccessSelectHandler = function(transaction, re
   this.map_url = 'http://maps.google.com/maps/api/staticmap?size=480x480' + this.markers + '&sensor=false&key=ABQIAAAAzr2EBOXUKnm_jVnk0OJI7xSsTL4WIgxhMZ0ZK_kHjwHeQuOD4xQJpBVbSrqNn69S6DOTv203MQ5ufA'
   $('#map').css('background-image', 'url('+ this.map_url +'&mobile=true)')
 
-  var sql = "SELECT id,name FROM 'stops' WHERE id IN ("+ next_stops.flatten().join(",") +")"
-    this.db.transaction(
+  var sql = "SELECT id,name FROM stops WHERE id IN ('"+ next_stops.flatten().join("','") +"')"
+  this.db.transaction(
     function(transaction){
       transaction.executeSql(sql, [], function(transaction, result){
 

@@ -3,7 +3,7 @@ function StopsAssistant() {
 
 StopsAssistant.prototype.setup = function(){
 
-  // Aplication menu setup
+  // Application menu setup
 	var menu_model = {
 	  	items: [
 	    	{label: "Informacje", command: 'about'},
@@ -21,19 +21,8 @@ StopsAssistant.prototype.setup = function(){
   // Open html5 storage connection
   this.db = openDatabase("tram2000", 1, "Tram2000", 250000)
 
-  // Create stops table if doesn't exist
-  this.db.transaction(
-    function (transaction) {
-      // var sql = "CREATE TABLE IF NOT EXISTS stops (id INTEGER PRIMARY KEY, name TEXT, geo TEXT, nx TEXT)"
-      var sql = "CREATE TABLE IF NOT EXISTS stops (id TEXT PRIMARY KEY ON CONFLICT REPLACE, name TEXT, loc TEXT, type INTEGER, geo TEXT, next TEXT)"
-      transaction.executeSql(sql, [],
-        function(){
-          console.log("Table was successfully created.")
-        },
-        this.dbFailureHandler.bind(this)
-      )
-    }.bind(this)
-  )
+  // Create object representing stops in db
+  this.stops = new Stops(this.db)
 
   var list_attributes = {
     renderLimit: 20,
@@ -134,14 +123,15 @@ StopsAssistant.prototype.dbFailureHandler = function(transaction, error) {
 StopsAssistant.prototype.clearDbSuccess = function(){
   var cookie = new Mojo.Model.Cookie('stops')
   cookie.put(0)
+  Stops.createTable(this.db)
   this.listWidget.mojo.setLength(0)
 }
 
 StopsAssistant.prototype.updateProgress = function(plus){
-  this.model.value = this.progress
+  this.progress += plus
+  if(Math.abs(this.progress - this.model.value) > 0.02) this.model.value = this.progress
   this.model.title = "Aktualizacja: "+ Math.round(this.progress*100) +"%"
   this.controller.modelChanged(this.model)
-  this.progress += plus
 }
 
 StopsAssistant.prototype.handleCommand = function(event) {
@@ -151,13 +141,13 @@ StopsAssistant.prototype.handleCommand = function(event) {
     switch(event.command) {
       case 'stops-sync':
         // Show progress bar and hide sync button
-        this.controller.setMenuVisible(Mojo.Menu.commandMenu, false)
         this.drawer.mojo.setOpenState(true)
+        this.controller.setMenuVisible(Mojo.Menu.commandMenu, false)
 
-        var couch = new CouchDB(this.db, "podsadzacz_development", this)
+        var couch = new CouchDB(this.db, "podsadzacz_development")
         couch.pull(new Mojo.Model.Cookie('stops').get() || 0, function(){
           this.refreshList()
-        }.bind(this))
+        }.bind(this), this)
         break
 				
       case 'stops-remove':
@@ -193,5 +183,5 @@ StopsAssistant.prototype.cleanup = function(event) {
 }
 
 StopsAssistant.prototype.itemsCallback = function(listWidget, offset, count) {
-  console.log("WOOOOOOOOOOOOT itemsCallback")
+  console.log("itemsCallback")
 }

@@ -28,9 +28,6 @@ BlipAssistant.prototype.setup = function() {
   this.timerRollHandler = this.timerRoll.bind(this)
   this.interval = window.setInterval(this.timerRollHandler, 1000)
 
-  // Crate database table 'Blips' if does not exist
-  Blip.createTable(this.sqlite, function(){})
-
   // Command menu setup
   this.commandMenuModel = {items: [{label: 'Pokaż szczegóły', command: 'show-details'}, {label: 'Reset', icon:'refresh', command:'reset'}]}
   this.controller.setupWidget(Mojo.Menu.commandMenu, {}, this.commandMenuModel)
@@ -65,6 +62,7 @@ BlipAssistant.prototype.onGpsSuccess = function(data) {
   // Time which might be useful if we create new blip
   this.timestamp = data.timestamp
   this.positions_queue.push({lat: data.latitude, lng: data.longitude, time: data.timestamp})
+//  console.log(Object.toJSON(this.positions_queue))
 
 }
 
@@ -141,7 +139,7 @@ BlipAssistant.prototype.dbSuccessHandler = function(transaction, SQLResultSet) {
       } else {
         // We may transferred
         if(!this.blip.alternate_next[the_nearest_stop.id]) {
-          this.blip.alternate_next[the_nearest_stop.id] = {next: the_nearest_stop.nx.split(",").map(parseInt), time: this.timestamp}
+          this.blip.alternate_next[the_nearest_stop.id] = {next: the_nearest_stop.next.split(","), time: this.timestamp}
 
         }
         return
@@ -177,11 +175,11 @@ BlipAssistant.prototype.timerRoll = function(event){
   this.last_measure++
   // Calculate speed
   var speed = 0
-  // Current position
-  var location = this.positions_queue.pop()
-
   // If this is not a first call (so we can display current speed)
-  if(this.positions_queue.length == 1){
+
+  if(this.positions_queue.length == 2){
+    // Current position
+    var location = this.positions_queue.pop()
     // this will be our reference
     var prev_location = this.positions_queue.pop()
 
@@ -205,7 +203,7 @@ BlipAssistant.prototype.timerRoll = function(event){
 
     // Only if there is no speed,
     // check if we are close enough to a stop (or stops)
-    if(speed == 0) Stop.findNearby(this.sqlite, location, this.dbSuccessHandler.bind(this))
+    if(speed == 0) Stops.findNearby(this.sqlite, location, this.dbSuccessHandler.bind(this))
 
     // append new data to blip
     if(this.blip) {

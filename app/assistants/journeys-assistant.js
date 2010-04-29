@@ -74,6 +74,13 @@ JourneysAssistant.prototype.printDate = function(item){
   return this.day[date.getDay()] + ", " + date.getDate() + " " + this.month[date.getMonth()]
 }
 
+JourneysAssistant.prototype.updateProgress = function(plus){
+  this.progress += plus
+  if(Math.abs(this.progress - this.model.value) > 0.02) this.model.value = this.progress
+  this.model.title = "Aktualizacja: "+ Math.round(this.progress*100) +"%"
+  this.controller.modelChanged(this.model)
+}
+
 JourneysAssistant.prototype.dbSuccessHandler = function(items){
   console.log("db success: " + items.length)
   this.listWidget.mojo.noticeUpdatedItems(0, items)
@@ -103,18 +110,32 @@ JourneysAssistant.prototype.handleCommand = function(event) {
   if(event.type == Mojo.Event.command) {
     switch(event.command) {
       case 'blips-send':
+
+        var user_cookie = new Mojo.Model.Cookie('user').get() || { username: "anonymous", password: "anonymous" }
+
+        if(user_cookie.username && !user_cookie.password){
+          this.controller.showDialog({
+            template: 'preferences/dialog/login-scene',
+            assistant: new LoginAssistant(this, function(){console.log("callback")}),
+            preventCancel: false
+          });
+
+        }
+
+        // Show progress bar and hide send button
+        this.drawer.mojo.setOpenState(true)
         this.controller.setMenuVisible(Mojo.Menu.commandMenu, false)
 
-        this.drawer.mojo.setOpenState(true)
+        var couch = new CouchDB(this.sqlite.db, "blips", user_cookie.username, user_cookie.password)
+        couch.push(this)
 
-        Blip.sendAll(this.sqlite, function(){
 
-          this.model.value = this.progress
-          this.model.title = "Wysyłanie: "+ Math.round(this.progress*100) +"%"
-          this.controller.modelChanged(this.model)
-          this.progress += 1.0 / Blip.count
-
-        }.bind(this))
+//        Blip.sendAll(this.sqlite, function(){
+//          this.model.value = this.progress
+//          this.model.title = "Wysyłanie: "+ Math.round(this.progress*100) +"%"
+//          this.controller.modelChanged(this.model)
+//          this.progress += 1.0 / Blip.count
+//        }.bind(this))
 
 //        var couch = new CouchDB(this.db, "stops", this)
 //        couch.pull(new Mojo.Model.Cookie('stops').get() || 0, function(){

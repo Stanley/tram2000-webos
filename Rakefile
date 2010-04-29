@@ -12,7 +12,7 @@ namespace :emulator do
 
   desc 'Just launch emulator'
   task :default do
-    sh "palm-emulator --start='Palm SDK 1.3.5.368 (320x480)'"
+    sh "palm-emulator --start='SDK 1.4.1.427 (320x480)'"
   end
 end
 

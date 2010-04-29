@@ -6,10 +6,15 @@ MainAssistant.prototype.setup = function() {
   if(this.controller.stageController.setWindowOrientation)
     this.controller.stageController.setWindowOrientation("free")
   
-	this.controller.setupWidget(Mojo.Menu.appMenu, appMenuAttr, appMenuModel);
-	this.controller.setupWidget('luncher', {}, {buttonLabel: 'Monitoruj', buttonClass: 'affirmative'});		
-	this.controller.setupWidget('stats', {}, {buttonLabel: 'Moje statystyki'});
-	
+	this.controller.setupWidget(Mojo.Menu.appMenu, appMenuAttr, appMenuModel)
+	this.controller.setupWidget('luncher', {}, {buttonLabel: 'Monitoruj', buttonClass: 'affirmative'})
+	this.controller.setupWidget('stats', {}, {buttonLabel: 'Moje statystyki'})
+
+  // Create all necessary sqlite tables if do not exist
+  var sqlite = openDatabase("tram2000", 1, "Tram2000", 250000)
+  Stops.createTable(sqlite)
+  Blip.createTable(sqlite)
+
 	Mojo.Event.listen(this.controller.get("luncher"), Mojo.Event.tap, this.handleRenderBlip.bind(this));
 	Mojo.Event.listen(this.controller.get("stats"), Mojo.Event.tap, this.handleRenderStats.bind(this));
 }

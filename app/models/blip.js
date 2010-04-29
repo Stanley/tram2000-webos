@@ -1,18 +1,16 @@
 // OBJECT
 // Creates table
-Blip.createTable = function(sqlite, callback) {
-  sqlite.db.transaction(
-
-
+Blip.createTable = function(sqlite) {
+  sqlite.transaction(
     function (transaction) {
-      try{
       var sql = "CREATE TABLE IF NOT EXISTS blips (time INTEGER PRIMARY KEY, beg INTEGER, end INTEGER, data TEXT)"
       transaction.executeSql(sql, [],
-        callback,
-        sqlite.failureHandler.bind(this)
+        function(){
+          console.log("Table was successfully created.")
+        },
+        Sqlite.failureHandler.bind(this)
       )
-        } catch(e) {console.log(e) }
-    }.bind(this)
+    }
   )
 }
 
@@ -20,7 +18,6 @@ Blip.count = 0
 
 // Connects to remote db, tries to sends all records one by one. If successfully, removes record from local db
 Blip.sendAll = function(sqlite, callback) {
-
   var couch = new CouchDB(sqlite.db, "blips")
   sqlite.db.transaction(
     function (transaction) {
@@ -89,7 +86,7 @@ Blip.byJourney = function(sqlite, callback) {
 //                                    } catch(e) {console.log(e)}
           callback(items)
         },
-        sqlite.failureHandler.bind(this)
+        Sqlite.failureHandler.bind(this)
       )
     }.bind(this)
   )
@@ -135,7 +132,7 @@ function Blip(sqlite, time, beg){
   this.lng = lat_lng.lng
 
   // Array of possible next stops
-  this.next = beg.nx.split(",").map(parseInt)
+  this.next = beg.next.split(",").map(parseInt)
   // Array of another possible next stops (useful after transfer)
   this.alternate_next = { }
 //  console.log(Object.toJSON(this.next))
@@ -184,7 +181,7 @@ Blip.prototype.save = function() {
         function(){
           console.log("Blip saved")
         }.bind(this),
-        this.sqlite.failureHandler.bind(this)
+        Sqlite.failureHandler.bind(this)
       )
     }.bind(this)
   )
