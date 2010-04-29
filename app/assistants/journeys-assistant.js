@@ -81,6 +81,19 @@ JourneysAssistant.prototype.updateProgress = function(plus){
   this.controller.modelChanged(this.model)
 }
 
+JourneysAssistant.prototype.hideProgress = function(){
+  var that = this
+  setTimeout(function(){
+    that.drawer.mojo.setOpenState(false)
+    setTimeout(function(){
+      that.updateProgress(-1)
+      setTimeout(function(){
+        that.controller.setMenuVisible(Mojo.Menu.commandMenu, true)
+      }, 7000)
+    }, 1000)
+  } , 2000)
+}
+
 JourneysAssistant.prototype.dbSuccessHandler = function(items){
   console.log("db success: " + items.length)
   this.listWidget.mojo.noticeUpdatedItems(0, items)
@@ -111,7 +124,7 @@ JourneysAssistant.prototype.handleCommand = function(event) {
     switch(event.command) {
       case 'blips-send':
 
-        var user_cookie = new Mojo.Model.Cookie('user').get() || { username: "anonymous", password: "anonymous" }
+        var user_cookie = new Mojo.Model.Cookie('user').get() || { username: "Anonymous", password: "Anonymous" }
 
         if(user_cookie.username && !user_cookie.password){
           this.controller.showDialog({
@@ -126,7 +139,7 @@ JourneysAssistant.prototype.handleCommand = function(event) {
         this.drawer.mojo.setOpenState(true)
         this.controller.setMenuVisible(Mojo.Menu.commandMenu, false)
 
-        var couch = new CouchDB(this.sqlite.db, "blips", user_cookie.username, user_cookie.password)
+        var couch = new CouchDB(this.sqlite.db, "blips_development", user_cookie.username, user_cookie.password)
         couch.push(this)
 
 

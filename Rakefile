@@ -35,6 +35,7 @@ end
 
 desc 'Root emulator'
 task :ssh do
+  p "To start autodrive type: luna-send -n 1 luna://com.palm.pmradiosimulator/autodrive/start {}"
   sh "/opt/Palm/novacom/novacom -t open tty://"
 end
 

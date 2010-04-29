@@ -1,9 +1,4 @@
 function StopsByNameAssistant(stops_name) {
-	/* this is the creator function for your scene assistant object. It will be passed all the 
-	   additional parameters (after the scene name) that were passed to pushScene. The reference
-	   to the scene controller (this.controller) has not be established yet, so any initialization
-	   that needs the scene controller should be done in the setup function below. */
-
   this.stops_name = stops_name
   this.markers = ""
   this.panelOpen = false
@@ -23,26 +18,20 @@ StopsByNameAssistant.prototype.setup = function() {
 	  ]},{}
   ]})
 
-  this.menupanel = this.controller.sceneElement.querySelector('div[x-mojo-menupanel]')
-  this.scrim = this.controller.sceneElement.querySelector('div[x-mojo-menupanel-scrim]')
+  this.menupanel = $("#menupanel")
+  this.scrim = $("#scrim")
 
   this.controller.listen('palm-header-toggle-menupanel', Mojo.Event.tap, this.toggleMenuPanel.bindAsEventListener(this))
-  this.controller.listen(this.scrim, Mojo.Event.tap, this.toggleMenuPanel.bindAsEventListener(this))
-
-  this._dragHandler = this._dragHandler.bindAsEventListener(this)
+  this.controller.listen('scrim', Mojo.Event.tap, this.toggleMenuPanel.bindAsEventListener(this))
 
   var list_attributes = {
     itemTemplate: 'stops/list/next-stop',
     itemsCallback: this.next_stops.bind(this)
   }
 
-  this.listWidget = this.controller.get('stops')
-  this.controller.setupWidget('stops', list_attributes)
+  this.listWidget = this.controller.get('menu-stops')
+  this.controller.setupWidget('menu-stops', list_attributes)
 
-  this.menuPanelVisibleTop = this.menupanel.offsetTop
-  this.menupanel.style.top = (0 - this.menupanel.offsetHeight - this.menupanel.offsetTop) + 'px'
-  this.menuPanelHiddenTop = this.menupanel.offsetTop
-  this.scrim.hide()
 }
 
 StopsByNameAssistant.prototype.next_stops = function(listWidget, offset, limit){
@@ -130,69 +119,9 @@ StopsByNameAssistant.prototype.cleanup = function(event) {
 //  $('body').css('background', '')
 }
 
-StopsByNameAssistant.prototype.animateMenuPanel = function(panel, reverse, callback){
-  Mojo.Animation.animateStyle(panel, 'top', 'bezier', {
-    from: this.menuPanelHiddenTop,
-    to: this.menuPanelVisibleTop,
-    duration: 0.12,
-    curve: 'over-easy',
-    reverse: reverse,
-    onComplete: callback
-  })
-}
-
-StopsByNameAssistant.prototype.menuPanelOn = function(){
-  var animateMenuCallback;
-  var that = this;
-  that.panelOpen = true;
-  this.scrim.style.opacity = 0;
-  this.scrim.show();
-  this.enableSceneScroller();
-  animateMenuCallback = function(){
-    that.menupanel.show();
-    that.animateMenuPanel(that.menupanel, false, Mojo.doNothing);
-  };
-  Mojo.Animation.Scrim.animate(this.scrim, 0, 1, animateMenuCallback);
-}
-
-StopsByNameAssistant.prototype.menuPanelOff = function(){
-  var animateMenuCallback;
-  var that = this;
-  that.panelOpen = false;
-  this.disableSceneScroller();
-  animateMenuCallback = function(){
-    that.menupanel.hide();
-    Mojo.Animation.Scrim.animate(that.scrim, 1, 0, that.scrim.hide.bind(that.scrim));
-  };
-  this.animateMenuPanel(this.menupanel, true, animateMenuCallback);
-}
-
-StopsByNameAssistant.prototype.toggleMenuPanel = function(e){
-  if(this.panelOpen){
-    this.menuPanelOff();
-  }else{
-    this.menuPanelOn();
-  }
-}
-
-/*
- * Disable the scene scroller to prevent the web view from scrolling underneath whatever is being displayed on top of it
- */
-StopsByNameAssistant.prototype.disableSceneScroller = function() {
-  this.controller.listen(this.controller.sceneElement, Mojo.Event.dragStart, this._dragHandler);
-}
-
-/** @private */
-StopsByNameAssistant.prototype._dragHandler = function(event) {
-  // prevents the scene from scrolling.
-  event.stop();
-}
-
-/*
- * Enable the scene scroller (everything back to normal)
- */
-StopsByNameAssistant.prototype.enableSceneScroller = function() {
-  this.controller.stopListening(this.controller.sceneElement, Mojo.Event.dragStart, this._dragHandler);
+StopsByNameAssistant.prototype.toggleMenuPanel = function(){
+  this.scrim.animate({opacity: "toggle"}, "fast")
+  this.menupanel.toggle()
 }
 
 StopsByNameAssistant.prototype.handleCommand = function(event) {

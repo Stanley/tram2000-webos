@@ -134,15 +134,29 @@ StopsAssistant.prototype.updateProgress = function(plus){
   this.controller.modelChanged(this.model)
 }
 
-StopsAssistant.prototype.handleCommand = function(event) {
+// Hide progress bar in 2s
+StopsAssistant.prototype.hideProgress = function(){
+  var that = this
+  setTimeout(function(){
+    that.drawer.mojo.setOpenState(false)
+    setTimeout(function(){
+      that.updateProgress(-1)
+      setTimeout(function(){
+        that.controller.setMenuVisible(Mojo.Menu.commandMenu, true)
+      }, 7000)
+    }, 1000)
+  } , 2000)
+}
 
+StopsAssistant.prototype.handleCommand = function(event) {
 
   if(event.type == Mojo.Event.command) {
     switch(event.command) {
       case 'stops-sync':
         // Show progress bar and hide sync button
+        var controller = this.controller
+        controller.setMenuVisible(Mojo.Menu.commandMenu, false)
         this.drawer.mojo.setOpenState(true)
-        this.controller.setMenuVisible(Mojo.Menu.commandMenu, false)
 
         var couch = new CouchDB(this.db, "podsadzacz_development")
         couch.pull(new Mojo.Model.Cookie('stops').get() || 0, function(){

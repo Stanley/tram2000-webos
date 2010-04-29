@@ -51,29 +51,31 @@ CouchDB.prototype.pull = function(rev, callback, assistant){
 
     db.transaction(
       function(transaction){
-        results.forEach(function(row){
-          var updated_at = row.key
-          var doc = row.doc
-          // Calcutate geohash and replace latitude & longitude with it
-          doc.geo = encodeGeoHash(doc.lat, doc.lng)
-          // Notice: We don't need UPDATE query because of conflict resolution defined when created database
-          console.log(Object.toJSON([doc._id, doc.name, doc.location, doc.buses, doc.trams, doc.next.join(","), doc.geo]))
-          transaction.executeSql("INSERT INTO stops (id, name, loc, bus, tram, next, geo) VALUES (?, ?, ?, ?, ?, ?, ?)", [doc._id, doc.name, doc.location, doc.buses, doc.trams, doc.next.join(","), doc.geo],
-            function(){
-              // console.log("insert or update sukces")
-              cookie.put(row.seq) // the newest record in db
-              assistant.updateProgress(1.0 / count)
-            },
-            Sqlite.failureHandler
-          )
-        })
+        if(results.length == 0){
+          assistant.updateProgress(1.0)
+        } else {
+          results.forEach(function(row){
+            var updated_at = row.key
+            var doc = row.doc
+            // Calcutate geohash and replace latitude & longitude with it
+            doc.geo = encodeGeoHash(doc.lat, doc.lng)
+            // Notice: We don't need UPDATE query because of conflict resolution defined when created database
+            console.log(Object.toJSON([doc._id, doc.name, doc.location, doc.buses, doc.trams, doc.next.join(","), doc.geo]))
+            transaction.executeSql("INSERT INTO stops (id, name, loc, bus, tram, next, geo) VALUES (?, ?, ?, ?, ?, ?, ?)", [doc._id, doc.name, doc.location, doc.buses, doc.trams, doc.next.join(","), doc.geo],
+              function(){
+                // console.log("insert or update sukces")
+                cookie.put(row.seq) // the newest record in db
+                assistant.updateProgress(1.0 / count)
+              },
+              Sqlite.failureHandler
+            )
+          })
+        }
       },
       function(){ console.log("failure") },
       function(){
-        assistant.drawer.mojo.setOpenState(false) // Hide progress bar
-        assistant.updateProgress(-1)
-
         Mojo.Controller.getAppController().showBanner('Bieżąca wersja bazy danych: ' + cookie.get() , {source: 'notification'})
+        assistant.hideProgress()
         callback()
       }
     )
@@ -98,7 +100,7 @@ CouchDB.prototype.pull = function(rev, callback, assistant){
 }
 
 // Push one document to CouchDB
-CouchDB.prototype.push = function(assistant){
+CouchDB.prototype.push = function(assistant, callback){
 
   var uri = this.uri
   var user = this.user
@@ -119,9 +121,8 @@ CouchDB.prototype.push = function(assistant){
             }.bind(this))
           }
 
-          assistant.drawer.mojo.setOpenState(false) // Hide progress bar
-          if(count > 0) assistant.updateProgress(-1)
-
+          assistant.hideProgress()
+          callback()
         },
         Sqlite.failureHandler.bind(this)
       )

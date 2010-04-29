@@ -17,23 +17,23 @@ Blip.createTable = function(sqlite) {
 Blip.count = 0
 
 // Connects to remote db, tries to sends all records one by one. If successfully, removes record from local db
-Blip.sendAll = function(sqlite, callback) {
-  var couch = new CouchDB(sqlite.db, "blips")
-  sqlite.db.transaction(
-    function (transaction) {
-      transaction.executeSql("SELECT * FROM blips", [],
-        function(transaction, result){
-
-          Blip.count = result.rows.length
-          for(var i=0; i < result.rows.length; i++) {
-            couch.push(result.rows.item(i), callback)
-          }
-        },
-        sqlite.failureHandler.bind(this)
-      )
-    }.bind(this)
-  )
-}
+//Blip.sendAll = function(sqlite, callback) {
+//  var couch = new CouchDB(sqlite.db, "blips_development")
+//  sqlite.db.transaction(
+//    function (transaction) {
+//      transaction.executeSql("SELECT * FROM blips", [],
+//        function(transaction, result){
+//
+//          Blip.count = result.rows.length
+//          for(var i=0; i < result.rows.length; i++) {
+//            couch.push(result.rows.item(i), callback)
+//          }
+//        },
+//        sqlite.failureHandler.bind(this)
+//      )
+//    }.bind(this)
+//  )
+//}
 
 // Journey is a sequence of blips, which were created one by one without any break.
 // Returns array of journeys.
