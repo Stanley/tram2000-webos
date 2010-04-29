@@ -1,3 +1,15 @@
+h1. Tram2000
+
+Tram2000 jest projektem mającym na celu monitorowanie ruchu pasażerów komunikacji miejskiej.
+
 h1. Tram2000-webos
 
-Implementacja aplikacji "tram2000-rhodes":http://github.com/Stanley/tram2000-rhodes, na smartfony z systemem operacyjnym "Palm webOS":http://developer.palm.com.
+Tram2000-webos jest narzędziem do generowania danych o podróżach, które odbywa pasażer. Dowiedz się więcej o działaniu aplikacji na "wiki":http://wiki.github.com/Stanley/tram2000-webos/analiza.
+
+h2. Instalacja
+
+Wersje alpha nie są dostępne w formie pakietów, dlatego do instalacji wymagany jest "Palm SDK":http://developer.palm.com/index.php?option=com_content&view=article&layout=page&id=1788&Itemid=21.
+
+bc. git clone git://github.com/Stanley/tram2000-webos.git
+palm-package tram2000-webos
+palm-install net.wasiutynski.tram2000*
